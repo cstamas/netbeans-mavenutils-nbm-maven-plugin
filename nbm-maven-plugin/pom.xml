@@ -114,37 +114,21 @@ under the License.
             <artifactId>maven-plugin-annotations</artifactId>
             <scope>provided</scope>
         </dependency>
-
-        <!-- BAD BOYS: we want to get rid of these -->
         <dependency>
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-compat</artifactId>
+            <groupId>org.apache.maven.resolver</groupId>
+            <artifactId>maven-resolver-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.maven.shared</groupId>
-            <artifactId>maven-filtering</artifactId>
-            <version>3.4.0</version>
+            <groupId>org.apache.maven.resolver</groupId>
+            <artifactId>maven-resolver-util</artifactId>
+            <!-- scope compile to work across Maven 3.8/3.9 -->
         </dependency>
-        <dependency>
-            <groupId>org.apache.maven.shared</groupId>
-            <artifactId>maven-dependency-tree</artifactId>
-            <version>3.3.0</version>
-        </dependency>
+
         <dependency>
             <groupId>org.apache.maven.shared</groupId>
             <artifactId>maven-dependency-analyzer</artifactId>
             <version>1.16.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.ow2.asm</groupId>
-                    <artifactId>asm</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm</artifactId>
         </dependency>
 
         <!-- tests -->
@@ -166,6 +150,11 @@ under the License.
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-compat</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

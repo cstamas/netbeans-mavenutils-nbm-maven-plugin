@@ -26,12 +26,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.factory.ArtifactFactory;
-import org.apache.maven.artifact.repository.ArtifactRepository;
-import org.apache.maven.artifact.repository.DefaultArtifactRepository;
-import org.apache.maven.artifact.repository.layout.ArtifactRepositoryLayout;
-import org.apache.maven.artifact.resolver.ArtifactResolver;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -99,20 +93,6 @@ public class CreateUpdateSiteMojo
     private String distBase;
 
     /**
-     * The Maven Project.
-     *
-     */
-    @Parameter(required = true, readonly = true, property = "project")
-    private MavenProject project;
-
-    /**
-     * If the executed project is a reactor project, this will contains the full
-     * list of projects in the reactor.
-     */
-    @Parameter(required = true, readonly = true, defaultValue = "${reactorProjects}")
-    private List reactorProjects;
-
-    /**
      * List of Ant style patterns on artifact GA (groupID:artifactID) that
      * should be included in the update site. Eg. org.netbeans.* matches all
      * artifacts with any groupID starting with 'org.netbeans.', org.*:api will
@@ -123,33 +103,6 @@ public class CreateUpdateSiteMojo
      */
     @Parameter
     private List<String> updateSiteIncludes;
-
-    private final ArtifactFactory artifactFactory;
-
-    /**
-     * Used for attaching the artifact in the project
-     *
-     */
-    private final MavenProjectHelper projectHelper;
-
-    private final ArtifactResolver artifactResolver;
-
-    /**
-     * Local maven repository.
-     *
-     */
-    @Parameter(defaultValue = "${session}", required = true, readonly = true)
-    protected MavenSession session;
-
-    private final Map<String, ArtifactRepositoryLayout> layouts;
-
-    @Inject
-    public CreateUpdateSiteMojo(ArtifactFactory artifactFactory, MavenProjectHelper projectHelper, ArtifactResolver artifactResolver, Map<String, ArtifactRepositoryLayout> layouts) {
-        this.artifactFactory = artifactFactory;
-        this.projectHelper = projectHelper;
-        this.artifactResolver = artifactResolver;
-        this.layouts = layouts;
-    }
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -173,9 +126,9 @@ public class CreateUpdateSiteMojo
             }
         }
 
-        if ("nbm-application".equals(project.getPackaging())) {
+        if ("nbm-application".equals(mavenSession.getCurrentProject().getPackaging())) {
             @SuppressWarnings("unchecked")
-            Set<Artifact> artifacts = project.getArtifacts();
+            Set<Artifact> artifacts = mavenSession.getCurrentProject().getArtifacts();
             for (Artifact art : artifacts) {
                 if (!matchesIncludes(art)) {
                     continue;
@@ -211,9 +164,9 @@ public class CreateUpdateSiteMojo
             }
             getLog().info("Created NetBeans module cluster(s) at " + nbmBuildDirFile.getAbsoluteFile());
 
-        } else if (reactorProjects != null && reactorProjects.size() > 0) {
+        } else if (mavenSession.getAllProjects().size() > 0) {
 
-            Iterator it = reactorProjects.iterator();
+            Iterator it = mavenSession.getAllProjects().iterator();
             while (it.hasNext()) {
                 MavenProject proj = (MavenProject) it.next();
                 File projOutputDirectory = new File(proj.getBuild().getDirectory());

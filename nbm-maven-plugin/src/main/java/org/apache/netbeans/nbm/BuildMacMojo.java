@@ -101,16 +101,10 @@ public class BuildMacMojo extends AbstractNbmMojo {
     @Parameter(property = "netbeans.mac.title", required = false)
     private String macAppTitle;
 
-    /**
-     * The Maven Project.
-     */
-    @Parameter(defaultValue = "${project}", required = true, readonly = true)
-    private MavenProject project;
-
     @Override
     public void execute()
             throws MojoExecutionException, MojoFailureException {
-        if (!"nbm-application".equals(project.getPackaging())) {
+        if (!"nbm-application".equals(mavenSession.getCurrentProject().getPackaging())) {
             throw new MojoExecutionException(
                     "This goal only makes sense on project with 'nbm-application' packaging.");
         }
@@ -172,7 +166,7 @@ public class BuildMacMojo extends AbstractNbmMojo {
             try (Stream<String> lines = Files.lines(macInfoplistFile.toPath())) {
                 String infoPListString = lines.map(s -> s.replace("${app.title}", macAppTitle))
                         .map(s -> s.replace("${app.name}", brandingToken))
-                        .map(s -> s.replace("${app.version}", project.getVersion()))
+                        .map(s -> s.replace("${app.version}", mavenSession.getCurrentProject().getVersion()))
                         .collect(Collectors.joining("\n"));
 
                 Files.write(infoplist, infoPListString.getBytes());
@@ -194,7 +188,7 @@ public class BuildMacMojo extends AbstractNbmMojo {
                 String infoPListString = reader.lines()
                         .map(s -> s.replace("${app.title}", macAppTitle))
                         .map(s -> s.replace("${app.name}", brandingToken))
-                        .map(s -> s.replace("${app.version}", project.getVersion()))
+                        .map(s -> s.replace("${app.version}", mavenSession.getCurrentProject().getVersion()))
                         .collect(Collectors.joining("\n"));
 
                 Files.write(infoplist, infoPListString.getBytes());

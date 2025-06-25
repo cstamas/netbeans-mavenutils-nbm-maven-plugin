@@ -125,9 +125,6 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
     @Parameter(defaultValue = "${basedir}/src/main/javahelp")
     protected File nbmJavahelpSource;
 
-    @Parameter(required = true, readonly = true, property = "project")
-    protected MavenProject project;
-
     /**
      * A list of additional resources to include in the NBM file. (Not in the
      * module JAR; see <code>InstalledFileLocator</code> for retrieval.)
@@ -157,7 +154,6 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
      * @since 3.2
      */
     @Parameter(property = "encoding", defaultValue = "${project.build.sourceEncoding}")
-
     protected String encoding;
 
     /**
@@ -220,21 +216,11 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
     @Parameter
     private List<String> externals;
 
-    private final MavenResourcesFiltering mavenResourcesFiltering;
-
-    @Parameter(defaultValue = "${session}", required = true, readonly = true)
-    protected MavenSession session;
-
     //items used by the CreateNBMMojo.
     protected Project antProject;
     protected NetBeansModule module;
     protected File clusterDir;
     protected String moduleJarName;
-
-    @Inject
-    public CreateNetBeansFileStructure(MavenResourcesFiltering mavenResourcesFiltering) {
-        this.mavenResourcesFiltering = mavenResourcesFiltering;
-    }
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -242,7 +228,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
         if (descriptor != null && descriptor.exists()) {
             module = readModuleDescriptor(descriptor);
         } else {
-            module = createDefaultDescriptor(project, false);
+            module = createDefaultDescriptor(mavenSession.getCurrentProject(), false);
         }
         //same moduleType related code in NetBeansManifestUpdateMojo.java
         String type = moduleType;
@@ -318,7 +304,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
         if (module != null) {
             // copy libraries to the designated place..
             @SuppressWarnings("unchecked")
-            List<Artifact> artifacts = project.getRuntimeArtifacts();
+            List<Artifact> artifacts = mavenSession.getCurrentProject().getRuntimeArtifacts();
             for (Artifact artifact : artifacts) {
                 File source = artifact.getFile();
 
@@ -445,7 +431,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
             boolean hasStandard = false;
             for (NbmResource res : ress) {
                 if (res.getBaseDirectory() != null) {
-                    File base = new File(project.getBasedir(), res.getBaseDirectory());
+                    File base = new File(mavenSession.getCurrentProject().getBasedir(), res.getBaseDirectory());
                     FileSet set = new FileSet();
                     set.setDir(base);
                     for (String inc : res.getIncludes()) {

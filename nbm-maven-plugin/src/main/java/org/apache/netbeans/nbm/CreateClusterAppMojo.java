@@ -54,12 +54,6 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import javax.inject.Inject;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.factory.ArtifactFactory;
-import org.apache.maven.artifact.resolver.AbstractArtifactResolutionException;
-import org.apache.maven.artifact.resolver.ArtifactNotFoundException;
-import org.apache.maven.artifact.resolver.ArtifactResolutionException;
-import org.apache.maven.artifact.resolver.ArtifactResolver;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -78,6 +72,7 @@ import org.apache.tools.ant.types.FileSet;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.StringUtils;
+import org.eclipse.aether.artifact.Artifact;
 import org.netbeans.nbbuild.MakeListOfNBM;
 
 /**
@@ -98,12 +93,6 @@ public class CreateClusterAppMojo extends AbstractNbmMojo {
      */
     @Parameter(defaultValue = "${project.build.directory}", required = true)
     private File outputDirectory;
-
-    /**
-     * The Maven Project.
-     */
-    @Parameter(defaultValue = "${project}", required = true, readonly = true)
-    private MavenProject project;
 
     /**
      * The branding token for the application based on NetBeans platform.
@@ -171,18 +160,8 @@ public class CreateClusterAppMojo extends AbstractNbmMojo {
         "org.openide.modules.jre.JavaFX" //MNBMODULE-234
     });
 
-    private final ArtifactFactory artifactFactory;
-
-    private final ArtifactResolver artifactResolver;
-
     @Parameter(defaultValue = "${session}", required = true, readonly = true)
     protected MavenSession session;
-
-    @Inject
-    public CreateClusterAppMojo(ArtifactFactory artifactFactory, ArtifactResolver artifactResolver) {
-        this.artifactFactory = artifactFactory;
-        this.artifactResolver = artifactResolver;
-    }
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -192,7 +171,7 @@ public class CreateClusterAppMojo extends AbstractNbmMojo {
             nbmBuildDirFile.mkdirs();
         }
 
-        if ("nbm-application".equals(project.getPackaging())) {
+        if ("nbm-application".equals(mavenSession.getCurrentProject().getPackaging())) {
             Project antProject = registerNbmAntTasks();
 
             Set<String> wrappedBundleCNBs = new HashSet<>(100);
@@ -215,7 +194,7 @@ public class CreateClusterAppMojo extends AbstractNbmMojo {
             List<BundleTuple> bundles = new ArrayList<>();
 
             @SuppressWarnings("unchecked")
-            Set<Artifact> artifacts = project.getArtifacts();
+            Set<Artifact> artifacts = mavenSession.getCurrentProject().getArtifacts();
             for (Artifact art : artifacts) {
                 ArtifactResult res = turnJarToNbmFile(art, artifactFactory, artifactResolver, project, session.getLocalRepository());
                 if (res.hasConvertedArtifact()) {
@@ -1083,7 +1062,7 @@ public class CreateClusterAppMojo extends AbstractNbmMojo {
                 + "</module>\n";
     }
 
-    static String createBundleUpdateTracking(String cnb, File moduleArt, File moduleConf, String specVersion) throws FileNotFoundException, IOException {
+    static String createBundleUpdateTracking(String cnb, File moduleArt, File moduleConf, String specVersion) throws IOException {
 
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
                 + "<module codename=\"" + cnb + "\">\n"
@@ -1097,7 +1076,7 @@ public class CreateClusterAppMojo extends AbstractNbmMojo {
 
     }
 
-    static CRC32 crcForFile(File inFile) throws FileNotFoundException, IOException {
+    static CRC32 crcForFile(File inFile) throws IOException {
         CRC32 crc = new CRC32();
         try (InputStream inFileStream = new FileInputStream(inFile)) {
             byte[] array = new byte[(int) inFile.length()];

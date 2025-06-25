@@ -19,17 +19,19 @@ package org.apache.netbeans.nbm;
  * under the License.
  */
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.shared.dependency.graph.DependencyNode;
-import org.apache.maven.shared.dependency.graph.traversal.DependencyNodeVisitor;
 import org.apache.netbeans.nbm.utils.ExamineManifest;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.graph.DependencyVisitor;
+import org.eclipse.aether.util.artifact.ArtifactIdUtils;
 
 /**
  * A dependency node visitor that collects visited nodes that are known
@@ -38,7 +40,7 @@ import org.apache.netbeans.nbm.utils.ExamineManifest;
  * @author Milos Kleint
  */
 public class CollectModuleLibrariesNodeVisitor
-        implements DependencyNodeVisitor {
+        implements DependencyVisitor {
 
     /**
      * The collected list of nodes.
@@ -73,13 +75,13 @@ public class CollectModuleLibrariesNodeVisitor
      * @param useOSGiDependencies whether to allow osgi dependencies or not
      */
     public CollectModuleLibrariesNodeVisitor(
-            List<Artifact> runtimeArtifacts, Map<Artifact, ExamineManifest> examinerCache,
+            Collection<Artifact> runtimeArtifacts, Map<Artifact, ExamineManifest> examinerCache,
             Log log, DependencyNode root, boolean useOSGiDependencies) {
         directNodes = new HashMap<String, List<Artifact>>();
         transitiveNodes = new HashMap<String, List<Artifact>>();
         artifacts = new HashMap<String, Artifact>();
         for (Artifact a : runtimeArtifacts) {
-            artifacts.put(a.getDependencyConflictId(), a);
+            artifacts.put(ArtifactIdUtils.toVersionlessId(a), a);
         }
         this.examinerCache = examinerCache;
         this.log = log;
@@ -90,7 +92,8 @@ public class CollectModuleLibrariesNodeVisitor
     /**
      * {@inheritDoc}
      */
-    public boolean visit(DependencyNode node) {
+    @Override
+    public boolean visitEnter(DependencyNode node) {
         if (throwable != null) {
             return false;
         }
@@ -99,12 +102,12 @@ public class CollectModuleLibrariesNodeVisitor
         }
         try {
             Artifact artifact = node.getArtifact();
-            if (!artifacts.containsKey(artifact.getDependencyConflictId())) {
+            if (!artifacts.containsKey(ArtifactIdUtils.toVersionlessId(artifact))) {
                 //ignore non-runtime stuff..
                 return false;
             }
             // somehow the transitive artifacts in the  tree are not always resolved?
-            artifact = artifacts.get(artifact.getDependencyConflictId());
+            artifact = artifacts.get(ArtifactIdUtils.toVersionlessId(artifact));
 
             ExamineManifest depExaminator = examinerCache.get(artifact);
             if (depExaminator == null) {
@@ -114,7 +117,7 @@ public class CollectModuleLibrariesNodeVisitor
                 examinerCache.put(artifact, depExaminator);
             }
             if (depExaminator.isNetBeansModule() || (useOSGiDependencies && depExaminator.isOsgiBundle())) {
-                currentModule.push(artifact.getDependencyConflictId());
+                currentModule.push(ArtifactIdUtils.toVersionlessId(artifact));
                 ArrayList<Artifact> arts = new ArrayList<Artifact>();
                 arts.add(artifact);
                 if (currentModule.size() == 1) {
@@ -128,7 +131,7 @@ public class CollectModuleLibrariesNodeVisitor
                 ////MNBMODULE-95 we are only interested in the module owned libraries
                 if (!currentModule.peek().startsWith(LIB_ID)
                         && AbstractNbmMojo.
-                                matchesLibrary(artifact, Collections.<String>emptyList(), depExaminator, log,
+                                matchesLibrary(artifact, node.getDependency().getScope(), Collections.<String>emptyList(), depExaminator, log,
                                         useOSGiDependencies)) {
                     if (currentModule.size() == 1) {
                         directNodes.get(currentModule.peek()).add(artifact);
@@ -143,7 +146,7 @@ public class CollectModuleLibrariesNodeVisitor
                 // depend on modules/bundles. these bundles are transitive, so
                 // we add the root module as the first currentModule to keep
                 //any bundle/module underneath it as transitive
-                currentModule.push(LIB_ID + artifact.getDependencyConflictId());
+                currentModule.push(LIB_ID + ArtifactIdUtils.toVersionlessId(artifact));
             }
         } catch (MojoExecutionException mojoExecutionException) {
             throwable = mojoExecutionException;
@@ -154,13 +157,14 @@ public class CollectModuleLibrariesNodeVisitor
     /**
      * {@inheritDoc}
      */
-    public boolean endVisit(DependencyNode node) {
+    @Override
+    public boolean visitLeave(DependencyNode node) {
         if (throwable != null) {
             return false;
         }
         if (!currentModule.empty()
-                && (currentModule.peek().equals(node.getArtifact().getDependencyConflictId())
-                || currentModule.peek().equals(LIB_ID + node.getArtifact().getDependencyConflictId()))) {
+                && (currentModule.peek().equals(ArtifactIdUtils.toVersionlessId(node.getArtifact()))
+                || currentModule.peek().equals(LIB_ID + ArtifactIdUtils.toVersionlessId(node.getArtifact())))) {
             currentModule.pop();
         }
         return true;

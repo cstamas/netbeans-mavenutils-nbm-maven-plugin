@@ -42,7 +42,6 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProjectHelper;
-import org.apache.maven.shared.filtering.MavenResourcesFiltering;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.types.Path;
 import org.apache.tools.ant.util.FileUtils;
@@ -177,23 +176,7 @@ public class CreateNbmMojo extends CreateNetBeansFileStructure {
     @Parameter
     private File licenseFile;
 
-    private final ArtifactFactory artifactFactory;
-    /**
-     * Used for attaching the artifact in the project
-     */
-    private final MavenProjectHelper projectHelper;
-
-    private final Map<String, ArtifactRepositoryLayout> layouts;
-
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy/MM/dd");
-
-    @Inject
-    public CreateNbmMojo(ArtifactFactory artifactFactory, MavenProjectHelper projectHelper, Map<String, ArtifactRepositoryLayout> layouts, MavenResourcesFiltering mavenResourcesFiltering) {
-        super(mavenResourcesFiltering);
-        this.artifactFactory = artifactFactory;
-        this.projectHelper = projectHelper;
-        this.layouts = layouts;
-    }
 
     @Override
     public void execute()
@@ -203,9 +186,9 @@ public class CreateNbmMojo extends CreateNetBeansFileStructure {
             return;
         }
 
-        if ("pom".equals(project.getPackaging())) {
+        if ("pom".equals(mavenSession.getCurrentProject().getPackaging())) {
             getLog().info(
-                    "Skipping " + project.getId() + ", no nbm:nbm execution for 'pom' packaging");
+                    "Skipping " + mavenSession.getCurrentProject().getId() + ", no nbm:nbm execution for 'pom' packaging");
             return;
         }
         super.execute();
@@ -257,7 +240,7 @@ public class CreateNbmMojo extends CreateNetBeansFileStructure {
             getLog().warn("Module descriptor's licenseName field is deprecated, use plugin's configuration in pom.xml");
         }
         if (module.getLicenseFile() != null) {
-            File lf = new File(project.getBasedir(), module.getLicenseFile());
+            File lf = new File(mavenSession.getCurrentProject().getBasedir(), module.getLicenseFile());
             licFile = lf;
             getLog().warn("Module descriptor's licenseFile field is deprecated, use plugin's configuration in pom.xml");
 
@@ -340,12 +323,12 @@ public class CreateNbmMojo extends CreateNetBeansFileStructure {
 
     private String createDefaultLicenseHeader() {
         String organization = "";
-        Organization org = project.getOrganization();
+        Organization org = mavenSession.getCurrentProject().getOrganization();
         if (org != null) {
             organization = org.getName();
         }
         if (organization == null) {
-            List devs = project.getDevelopers();
+            List devs = mavenSession.getCurrentProject().getDevelopers();
             if (devs.size() > 0) {
                 Iterator dvs = devs.iterator();
                 String devsString = "";
@@ -360,8 +343,8 @@ public class CreateNbmMojo extends CreateNetBeansFileStructure {
             organization = ""; //what's a good default value?
         }
         String date = "";
-        if (project.getInceptionYear() != null) {
-            date = project.getInceptionYear();
+        if (mavenSession.getCurrentProject().getInceptionYear() != null) {
+            date = mavenSession.getCurrentProject().getInceptionYear();
         }
         String year = Integer.toString(Calendar.getInstance().get(Calendar.YEAR));
         if (!year.equals(date)) {
@@ -373,7 +356,7 @@ public class CreateNbmMojo extends CreateNetBeansFileStructure {
     private String createDefaultLicenseText() {
         String toRet = "License terms:\n";
 
-        List licenses = project.getLicenses();
+        List licenses = mavenSession.getCurrentProject().getLicenses();
         if (licenses != null && licenses.size() > 0) {
             Iterator lic = licenses.iterator();
             while (lic.hasNext()) {

@@ -24,12 +24,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.shared.dependency.graph.DependencyNode;
-import org.apache.maven.shared.dependency.graph.traversal.DependencyNodeVisitor;
 import org.apache.netbeans.nbm.utils.ExamineManifest;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.graph.DependencyVisitor;
+import org.eclipse.aether.util.artifact.ArtifactIdUtils;
 
 /**
  * A dependency node visitor that collects visited nodes that are known
@@ -37,7 +38,7 @@ import org.apache.netbeans.nbm.utils.ExamineManifest;
  *
  * @author Milos Kleint
  */
-public class CollectLibrariesNodeVisitor implements DependencyNodeVisitor {
+public class CollectLibrariesNodeVisitor implements DependencyVisitor {
 
     /**
      * The collected list of nodes.
@@ -81,7 +82,7 @@ public class CollectLibrariesNodeVisitor implements DependencyNodeVisitor {
         nodes = new ArrayList<>();
         artifacts = new HashMap<>();
         for (Artifact a : runtimeArtifacts) {
-            artifacts.put(a.getDependencyConflictId(), a);
+            artifacts.put(ArtifactIdUtils.toVersionlessId(a), a);
         }
         this.examinerCache = examinerCache;
         this.explicitLibs = explicitLibraries;
@@ -97,7 +98,7 @@ public class CollectLibrariesNodeVisitor implements DependencyNodeVisitor {
      * {@inheritDoc}
      */
     @Override
-    public boolean visit(DependencyNode node) {
+    public boolean visitEnter(DependencyNode node) {
         if (throwable != null) {
             return false;
         }
@@ -106,12 +107,12 @@ public class CollectLibrariesNodeVisitor implements DependencyNodeVisitor {
         }
         try {
             Artifact artifact = node.getArtifact();
-            if (!artifacts.containsKey(artifact.getDependencyConflictId())) {
+            if (!artifacts.containsKey(ArtifactIdUtils.toVersionlessId(artifact))) {
                 //ignore non-runtime stuff..
                 return false;
             }
             // somehow the transitive artifacts in the  tree are not always resolved?
-            artifact = artifacts.get(artifact.getDependencyConflictId());
+            artifact = artifacts.get(ArtifactIdUtils.toVersionlessId(artifact));
 
             ExamineManifest depExaminator = examinerCache.get(artifact);
             if (depExaminator == null) {
@@ -120,13 +121,13 @@ public class CollectLibrariesNodeVisitor implements DependencyNodeVisitor {
                 depExaminator.checkFile();
                 examinerCache.put(artifact, depExaminator);
             }
-            if (AbstractNbmMojo.matchesLibrary(artifact, explicitLibs, depExaminator, log, useOsgiDependencies)) {
+            if (AbstractNbmMojo.matchesLibrary(artifact, node.getDependency().getScope(), explicitLibs, depExaminator, log, useOsgiDependencies)) {
                 if (depExaminator.isNetBeansModule()) {
-                    log.warn("You are using a NetBeans Module as a Library (classpath extension): " + artifact.getId());
+                    log.warn("You are using a NetBeans Module as a Library (classpath extension): " + ArtifactIdUtils.toId(artifact));
                 }
 
                 nodes.add(artifact);
-                includes.add(artifact.getDependencyConflictId());
+                includes.add(ArtifactIdUtils.toVersionlessId(artifact));
                 // if a library, iterate to it's child nodes.
                 return true;
             }
@@ -141,7 +142,7 @@ public class CollectLibrariesNodeVisitor implements DependencyNodeVisitor {
      * {@inheritDoc}
      */
     @Override
-    public boolean endVisit(DependencyNode node) {
+    public boolean visitLeave(DependencyNode node) {
         if (throwable != null) {
             return false;
         }
@@ -149,7 +150,7 @@ public class CollectLibrariesNodeVisitor implements DependencyNodeVisitor {
             if (!nodes.isEmpty()) {
                 log.info("Adding on module's Class-Path:");
                 for (Artifact inc : nodes) {
-                    log.info("    " + inc.getId());
+                    log.info("    " + ArtifactIdUtils.toId(inc));
                 }
             }
         }

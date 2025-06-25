@@ -24,37 +24,42 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.maven.archiver.MavenArchiver;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.factory.ArtifactFactory;
-import org.apache.maven.artifact.repository.ArtifactRepository;
-import org.apache.maven.artifact.resolver.ArtifactNotFoundException;
-import org.apache.maven.artifact.resolver.ArtifactResolutionException;
-import org.apache.maven.artifact.resolver.ArtifactResolver;
-import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
-import org.apache.maven.artifact.resolver.filter.ScopeArtifactFilter;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.project.ProjectBuildingRequest;
-import org.apache.maven.shared.dependency.graph.DependencyGraphBuilder;
-import org.apache.maven.shared.dependency.graph.DependencyGraphBuilderException;
-import org.apache.maven.shared.dependency.graph.DependencyNode;
+import org.apache.maven.project.MavenProjectHelper;
 import org.apache.netbeans.nbm.model.Dependency;
 import org.apache.netbeans.nbm.model.NetBeansModule;
 import org.apache.netbeans.nbm.model.io.xpp3.NetBeansModuleXpp3Reader;
 import org.apache.netbeans.nbm.utils.AbstractNetbeansMojo;
 import org.apache.netbeans.nbm.utils.ExamineManifest;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.util.artifact.JavaScopes;
 
 public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
 
-    static boolean matchesLibrary(Artifact artifact, List<String> libraries, ExamineManifest depExaminator,
-            Log log, boolean useOsgiDependencies) {
+    @Component
+    protected RepositorySystem repositorySystem;
+
+    @Component
+    protected MavenSession mavenSession;
+
+    @Component
+    protected MavenProjectHelper mavenProjectHelper;
+
+    static boolean matchesLibrary(Artifact artifact, String scope, List<String> libraries, ExamineManifest depExaminator,
+                                  Log log, boolean useOsgiDependencies) {
         String artId = artifact.getArtifactId();
         String grId = artifact.getGroupId();
         String id = grId + ":" + artId;
@@ -63,12 +68,11 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
             log.debug(id + " included as module library, explicitly declared in module descriptor.");
             return explicit;
         }
-        if (Artifact.SCOPE_PROVIDED.equals(artifact.getScope()) || Artifact.SCOPE_SYSTEM.equals(
-                artifact.getScope())) {
+        if (JavaScopes.PROVIDED.equals(scope) || JavaScopes.SYSTEM.equals(scope)) {
             log.debug(id + " omitted as module library, has scope 'provided/system'");
             return false;
         }
-        if ("nbm".equals(artifact.getType())) {
+        if ("nbm".equals(artifact.getExtension())) {
             return false;
         }
         if (depExaminator.isNetBeansModule() || (useOsgiDependencies && depExaminator.isOsgiBundle())) {
@@ -97,7 +101,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
                 }
             }
         }
-        if ("nbm".equals(artifact.getType())) {
+        if ("nbm".equals(artifact.getExtension())) {
             Dependency dep = new Dependency();
             dep.setId(id);
             dep.setType("spec");
@@ -140,9 +144,9 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
     }
 
     static List<Artifact> getLibraryArtifacts(DependencyNode treeRoot, NetBeansModule module,
-            List<Artifact> runtimeArtifacts,
-            Map<Artifact, ExamineManifest> examinerCache, Log log,
-            boolean useOsgiDependencies)
+                                              List<Artifact> runtimeArtifacts,
+                                              Map<Artifact, ExamineManifest> examinerCache, Log log,
+                                              boolean useOsgiDependencies)
             throws MojoExecutionException {
         List<Artifact> include = new ArrayList<>();
         if (module != null) {
@@ -191,7 +195,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         List<ModuleWrapper> include = new ArrayList<ModuleWrapper>();
 
         @SuppressWarnings("unchecked")
-        List<Artifact> artifacts = project.getCompileArtifacts();
+        Collection<Artifact> artifacts = project.getCompileArtifacts();
         for (Artifact artifact : artifacts) {
             if (libraryArtifacts.contains(artifact)) {
                 continue;
@@ -307,9 +311,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         return filter;
     }
 
-    protected final ArtifactResult turnJarToNbmFile(Artifact art, ArtifactFactory artifactFactory,
-            ArtifactResolver artifactResolver, MavenProject project,
-            ArtifactRepository localRepository)
+    protected final ArtifactResult turnJarToNbmFile(Artifact art, MavenProject project)
             throws MojoExecutionException {
         if ("jar".equals(art.getType()) || "nbm".equals(art.getType())) {
             //TODO, it would be nice to have a check to see if the

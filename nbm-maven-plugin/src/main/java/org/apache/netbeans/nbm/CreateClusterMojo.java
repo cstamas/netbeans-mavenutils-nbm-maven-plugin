@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -66,13 +65,6 @@ public class CreateClusterMojo extends AbstractNbmMojo {
      */
     @Parameter(defaultValue = "${project.build.directory}/netbeans_clusters", required = true)
     protected File clusterBuildDir;
-
-    /**
-     * If the executed project is a reactor project, this will contains the full
-     * list of projects in the reactor.
-     */
-    @Parameter(defaultValue = "${session}", required = true, readonly = true)
-    private MavenSession mavenSession;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {

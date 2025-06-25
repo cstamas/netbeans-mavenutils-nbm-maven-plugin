@@ -92,13 +92,11 @@ public class BrandingMojo extends AbstractNbmMojo {
      */
     @Parameter(required = true, defaultValue = "extra")
     protected String cluster;
-    @Parameter(defaultValue = "${project}", required = true, readonly = true)
-    private MavenProject project;
 
     @Override
     public void execute()
             throws MojoExecutionException {
-        if (!"nbm".equals(project.getPackaging())) {
+        if (!"nbm".equals(mavenSession.getCurrentProject().getPackaging())) {
             getLog().error("The nbm:branding goal shall be used within a NetBeans module project only (packaging 'nbm')");
         }
         if (!brandingSources.isDirectory()) {

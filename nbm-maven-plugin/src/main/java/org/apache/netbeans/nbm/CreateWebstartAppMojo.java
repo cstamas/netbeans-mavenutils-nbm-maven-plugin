@@ -37,6 +37,7 @@ import java.util.jar.JarFile;
 import javax.inject.Inject;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.project.MavenProject;
@@ -72,14 +73,8 @@ import org.netbeans.nbbuild.VerifyJNLP;
 public class CreateWebstartAppMojo
         extends AbstractNbmMojo {
 
-    /**
-     * The Maven project.
-     *
-     */
-    @org.apache.maven.plugins.annotations.Parameter(required = true, readonly = true, property = "project")
-    private MavenProject project;
-
-    private final MavenProjectHelper projectHelper;
+    @Component
+    MavenProjectHelper projectHelper;
 
     /**
      * The branding token for the application based on NetBeans platform.
@@ -190,11 +185,6 @@ public class CreateWebstartAppMojo
     @org.apache.maven.plugins.annotations.Parameter(property = "netbeans.run.params")
     private String additionalArguments;
 
-    @Inject
-    public CreateWebstartAppMojo(MavenProjectHelper projectHelper) {
-        this.projectHelper = projectHelper;
-    }
-
     /**
      *
      * @throws MojoExecutionException if an unexpected problem occurs
@@ -203,7 +193,7 @@ public class CreateWebstartAppMojo
     @Override
     public void execute()
             throws MojoExecutionException, MojoFailureException {
-        if (!"nbm-application".equals(project.getPackaging())) {
+        if (!"nbm-application".equals(mavenSession.getCurrentProject().getPackaging())) {
             throw new MojoExecutionException(
                     "This goal only makes sense on project with nbm-application packaging.");
         }
