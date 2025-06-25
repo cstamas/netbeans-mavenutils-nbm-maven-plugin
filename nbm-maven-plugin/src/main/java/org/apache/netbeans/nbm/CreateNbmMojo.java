@@ -297,7 +297,7 @@ public class CreateNbmMojo extends CreateNetBeansFileStructure {
             nbmTask.setTargetcluster(cluster);
         }
         //MNBMODULE-217 avoid using the static DATE_FORMAT variable in MavenNBM.java (in ant harness)
-        nbmTask.setReleasedate(DATE_FORMAT.format(getOutputTimestampOrNow(project)));
+        nbmTask.setReleasedate(DATE_FORMAT.format(getOutputTimestampOrNow(mavenSession.getCurrentProject())));
         Path updaterPath = nbmTask.createUpdaterJar();
         try {
             // locate a public class from updater to get the path
@@ -315,7 +315,7 @@ public class CreateNbmMojo extends CreateNetBeansFileStructure {
         try {
             File nbmfile = new File(buildDir, nbmFile.getName());
             FileUtils.getFileUtils().copyFile(nbmFile, nbmfile);
-            projectHelper.attachArtifact(project, "nbm-file", null, nbmfile);
+            mavenProjectHelper.attachArtifact(mavenSession.getCurrentProject(), "nbm-file", null, nbmfile);
         } catch (IOException ex) {
             throw new MojoExecutionException("Cannot copy nbm to build directory", ex);
         }

@@ -47,6 +47,7 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.shared.filtering.MavenFilteringException;
 import org.apache.maven.project.MavenProject;
@@ -215,6 +216,9 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
      */
     @Parameter
     private List<String> externals;
+
+    @Component
+    MavenResourcesFiltering mavenResourcesFiltering;
 
     //items used by the CreateNBMMojo.
     protected Project antProject;
@@ -512,8 +516,8 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
                         + ", i.e. build is platform dependent!");
             }
             MavenResourcesExecution mavenResourcesExecution
-                    = new MavenResourcesExecution(Arrays.asList(nbmResources), clusterDir, project, encoding,
-                            Collections.EMPTY_LIST, Collections.EMPTY_LIST, session);
+                    = new MavenResourcesExecution(Arrays.asList(nbmResources), clusterDir, mavenSession.getCurrentProject(), encoding,
+                            Collections.emptyList(), Collections.emptyList(), mavenSession);
             mavenResourcesExecution.setEscapeWindowsPaths(true);
             mavenResourcesFiltering.filterResources(mavenResourcesExecution);
         } catch (MavenFilteringException ex) {

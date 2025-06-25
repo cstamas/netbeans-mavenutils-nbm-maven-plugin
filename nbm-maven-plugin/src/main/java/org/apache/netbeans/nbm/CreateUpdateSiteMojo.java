@@ -241,8 +241,8 @@ public class CreateUpdateSiteMojo
             File gzipped = new File(nbmBuildDirFile, fileName + ".gz");
             gz.setDestFile(gzipped);
             gz.createArchive();
-            if ("nbm-application".equals(project.getPackaging())) {
-                projectHelper.attachArtifact(project, "xml.gz", "updatesite", gzipped);
+            if ("nbm-application".equals(mavenSession.getCurrentProject().getPackaging())) {
+                mavenProjectHelper.attachArtifact(mavenSession.getCurrentProject(), "xml.gz", "updatesite", gzipped);
             }
         } catch (Exception ex) {
             throw new MojoExecutionException("Cannot create gzipped version of the update site xml file.", ex);

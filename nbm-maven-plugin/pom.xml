@@ -130,6 +130,17 @@ under the License.
             <artifactId>maven-dependency-analyzer</artifactId>
             <version>1.16.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.maven.shared</groupId>
+            <artifactId>maven-filtering</artifactId>
+            <version>3.4.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.codehaus.plexus</groupId>
+                    <artifactId>plexus-xml</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
         <!-- tests -->
         <dependency>

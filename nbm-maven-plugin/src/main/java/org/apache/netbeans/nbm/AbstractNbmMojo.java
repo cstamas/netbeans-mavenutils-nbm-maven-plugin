@@ -29,6 +29,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.maven.RepositoryUtils;
 import org.apache.maven.archiver.MavenArchiver;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -45,6 +46,7 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.graph.DependencyNode;
+import org.eclipse.aether.util.artifact.ArtifactIdUtils;
 import org.eclipse.aether.util.artifact.JavaScopes;
 
 public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
@@ -195,7 +197,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         List<ModuleWrapper> include = new ArrayList<ModuleWrapper>();
 
         @SuppressWarnings("unchecked")
-        Collection<Artifact> artifacts = project.getCompileArtifacts();
+        Collection<Artifact> artifacts = RepositoryUtils.toArtifacts(project.getCompileArtifacts());
         for (Artifact artifact : artifacts) {
             if (libraryArtifacts.contains(artifact)) {
                 continue;
@@ -216,7 +218,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
                 //only direct deps matter to us..
                 if (depExaminator.isNetBeansModule() && artifact.getDependencyTrail().size() > 2) {
                     log.debug(
-                            artifact.getId()
+                            ArtifactIdUtils.toId(artifact)
                             + " omitted as NetBeans module dependency, not a direct one. "
                             + "Declare it in the pom for inclusion.");
                     wr.transitive = true;
@@ -247,7 +249,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
                     //only direct deps matter to us..
                     if (artifact.getDependencyTrail().size() > 2) {
                         log.debug(
-                                artifact.getId()
+                                ArtifactIdUtils.toId(artifact)
                                 + " omitted as NetBeans module OSGi dependency, not a direct one. "
                                 + "Declare it in the pom for inclusion.");
                         wr.transitive = true;
@@ -397,16 +399,16 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         }
     }
 
-    private void checkReactor(Artifact art, Artifact nbmArt) {
+    private Artifact checkReactor(Artifact art, Artifact nbmArt) {
         if (art.getFile().getName().endsWith(".jar")) {
             String name = art.getFile().getName();
             name = name.substring(0, name.length() - ".jar".length()) + ".nbm";
             File fl = new File(art.getFile().getParentFile(), name);
             if (fl.exists()) {
-                nbmArt.setFile(fl);
-                nbmArt.setResolved(true);
+                nbmArt = nbmArt.setFile(fl); // is resolved by having file set
             }
         }
+        return nbmArt;
     }
 
     static Date getOutputTimestampOrNow(MavenProject project) {
