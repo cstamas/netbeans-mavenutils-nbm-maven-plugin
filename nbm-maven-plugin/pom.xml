@@ -171,6 +171,12 @@ under the License.
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/filtered-resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <!-- TODO need to override parent version value... I suppose this will eventually end up in mojo parent pom, check regularly -->

@@ -57,7 +57,6 @@ import org.apache.netbeans.nbm.model.NetBeansModule;
 import org.apache.netbeans.nbm.utils.ExamineManifest;
 import org.apache.tools.ant.taskdefs.Manifest;
 import org.apache.tools.ant.taskdefs.ManifestException;
-import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.util.artifact.ArtifactIdUtils;
