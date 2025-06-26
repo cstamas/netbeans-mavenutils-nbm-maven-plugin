@@ -23,7 +23,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,7 +61,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.MavenProjectHelper;
 import org.apache.netbeans.nbm.utils.ExamineManifest;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
@@ -72,6 +71,7 @@ import org.apache.tools.ant.types.FileSet;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.StringUtils;
+import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.netbeans.nbbuild.MakeListOfNBM;
 
@@ -86,7 +86,7 @@ import org.netbeans.nbbuild.MakeListOfNBM;
         requiresProject = true,
         threadSafe = true,
         requiresDependencyResolution = ResolutionScope.RUNTIME)
-public class CreateClusterAppMojo extends AbstractNbmMojo {
+public final class CreateClusterAppMojo extends AbstractNbmMojo {
 
     /**
      * output directory where the the NetBeans application will be created.
@@ -98,7 +98,7 @@ public class CreateClusterAppMojo extends AbstractNbmMojo {
      * The branding token for the application based on NetBeans platform.
      */
     @Parameter(property = "netbeans.branding.token", required = true)
-    protected String brandingToken;
+    private String brandingToken;
 
     /**
      * Optional path to custom etc/${brandingToken}.conf file. If not defined, a
@@ -160,8 +160,10 @@ public class CreateClusterAppMojo extends AbstractNbmMojo {
         "org.openide.modules.jre.JavaFX" //MNBMODULE-234
     });
 
-    @Parameter(defaultValue = "${session}", required = true, readonly = true)
-    protected MavenSession session;
+    @Inject
+    public CreateClusterAppMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts) {
+        super(repositorySystem, mavenSession, mavenProjectHelper, artifacts);
+    }
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -554,7 +556,7 @@ public class CreateClusterAppMojo extends AbstractNbmMojo {
                         ex.printStackTrace();
                     }
                 }
-                stamp.setLastModified(getOutputTimestampOrNow(project).getTime());
+                stamp.setLastModified(getOutputTimestampOrNow(mavenSession.getCurrentProject()).getTime());
             }
         }
         try {

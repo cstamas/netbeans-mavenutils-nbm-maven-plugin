@@ -49,6 +49,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.shared.filtering.MavenFilteringException;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.filtering.MavenResourcesExecution;
@@ -64,6 +65,7 @@ import org.apache.tools.ant.types.FileSet;
 import org.apache.tools.ant.types.Path;
 import org.apache.tools.ant.types.PatternSet;
 import org.apache.tools.ant.util.FileUtils;
+import org.eclipse.aether.RepositorySystem;
 import org.netbeans.nbbuild.CreateModuleXML;
 import org.netbeans.nbbuild.MakeListOfNBM;
 import org.codehaus.plexus.util.ReaderFactory;
@@ -199,7 +201,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
      * @since 3.8
      */
     @Parameter(defaultValue = "${project.groupId}.${project.artifactId}")
-    private String codeNameBase;
+    protected String codeNameBase;
 
     /**
      * list of groupId:artifactId pairs describing libraries that go into the
@@ -215,16 +217,21 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
      * @since 3.8
      */
     @Parameter
-    private List<String> externals;
-
-    @Component
-    MavenResourcesFiltering mavenResourcesFiltering;
+    protected List<String> externals;
 
     //items used by the CreateNBMMojo.
     protected Project antProject;
     protected NetBeansModule module;
     protected File clusterDir;
     protected String moduleJarName;
+
+    protected final MavenResourcesFiltering mavenResourcesFiltering;
+
+    @Inject
+    public CreateNetBeansFileStructure(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts, MavenResourcesFiltering mavenResourcesFiltering) {
+        super(repositorySystem, mavenSession, mavenProjectHelper, artifacts);
+        this.mavenResourcesFiltering = mavenResourcesFiltering;
+    }
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {

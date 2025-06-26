@@ -50,6 +50,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.shared.dependency.analyzer.DefaultClassAnalyzer;
 import org.apache.maven.shared.dependency.analyzer.asm.ASMDependencyAnalyzer;
 import org.apache.netbeans.nbm.model.Dependency;
@@ -57,6 +58,7 @@ import org.apache.netbeans.nbm.model.NetBeansModule;
 import org.apache.netbeans.nbm.utils.ExamineManifest;
 import org.apache.tools.ant.taskdefs.Manifest;
 import org.apache.tools.ant.taskdefs.ManifestException;
+import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.graph.DependencyNode;
 import org.eclipse.aether.util.artifact.ArtifactIdUtils;
@@ -88,14 +90,14 @@ import org.eclipse.aether.util.artifact.ArtifactIdUtils;
         requiresProject = true,
         threadSafe = true,
         requiresDependencyResolution = ResolutionScope.RUNTIME)
-public class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
+public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
 
     /**
      * NetBeans module assembly build directory. directory where the the
      * NetBeans jar and nbm file get constructed.
      */
     @Parameter(defaultValue = "${project.build.directory}/nbm", property = "maven.nbm.buildDir")
-    protected File nbmBuildDir;
+    private File nbmBuildDir;
 
     /**
      * a NetBeans module descriptor containing dependency information and more
@@ -105,7 +107,7 @@ public class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
      */
     @Deprecated
     @Parameter(defaultValue = "${basedir}/src/main/nbm/module.xml")
-    protected File descriptor;
+    private File descriptor;
 
     /**
      * The location of JavaHelp sources for the project. The documentation
@@ -118,7 +120,7 @@ public class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
      * @since 2.7
      */
     @Parameter(defaultValue = "${basedir}/src/main/javahelp")
-    protected File nbmJavahelpSource;
+    private File nbmJavahelpSource;
 
     /**
      * Path to manifest file that will be used as base and enhanced with
@@ -273,7 +275,12 @@ public class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
      * @since 3.8 (3.14 in manifest goal)
      */
     @Parameter(defaultValue = "normal")
-    protected String moduleType;
+    private String moduleType;
+
+    @Inject
+    public NetBeansManifestUpdateMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts) {
+        super(repositorySystem, mavenSession, mavenProjectHelper, artifacts);
+    }
 
     /**
      * execute plugin

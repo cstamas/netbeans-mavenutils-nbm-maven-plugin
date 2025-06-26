@@ -26,6 +26,7 @@ import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Developer;
 import org.apache.maven.model.License;
 import org.apache.maven.model.Organization;
@@ -35,13 +36,18 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.project.MavenProjectHelper;
+import org.apache.maven.shared.filtering.MavenResourcesFiltering;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.types.Path;
 import org.apache.tools.ant.util.FileUtils;
+import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.netbeans.nbbuild.MakeNBM;
 import org.netbeans.nbbuild.MakeNBM.Blurb;
 import org.netbeans.nbbuild.MakeNBM.Signature;
+
+import javax.inject.Inject;
 
 /**
  * Create the NetBeans module artifact (nbm file), part of "nbm"
@@ -55,7 +61,7 @@ import org.netbeans.nbbuild.MakeNBM.Signature;
         threadSafe = true,
         requiresDependencyResolution = ResolutionScope.RUNTIME,
         defaultPhase = LifecyclePhase.PACKAGE)
-public class CreateNbmMojo extends CreateNetBeansFileStructure {
+public final class CreateNbmMojo extends CreateNetBeansFileStructure {
 
     /**
      * keystore location for signing the nbm file
@@ -171,6 +177,11 @@ public class CreateNbmMojo extends CreateNetBeansFileStructure {
     private File licenseFile;
 
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy/MM/dd");
+
+    @Inject
+    public CreateNbmMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts, MavenResourcesFiltering mavenResourcesFiltering) {
+        super(repositorySystem, mavenSession, mavenProjectHelper, artifacts, mavenResourcesFiltering);
+    }
 
     @Override
     public void execute()

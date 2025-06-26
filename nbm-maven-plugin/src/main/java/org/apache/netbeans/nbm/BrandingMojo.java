@@ -20,15 +20,21 @@ package org.apache.netbeans.nbm;
  */
 import java.io.File;
 import java.io.IOException;
+
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.MavenProjectHelper;
 import org.codehaus.plexus.archiver.ArchiverException;
 import org.codehaus.plexus.archiver.jar.JarArchiver;
 import org.codehaus.plexus.util.DirectoryScanner;
 import org.codehaus.plexus.util.FileUtils;
+import org.eclipse.aether.RepositorySystem;
+
+import javax.inject.Inject;
 
 /**
  * Package branding resources for NetBeans platform/IDE based application. The
@@ -62,19 +68,19 @@ import org.codehaus.plexus.util.FileUtils;
         requiresProject = true,
         threadSafe = true,
         defaultPhase = LifecyclePhase.PACKAGE)
-public class BrandingMojo extends AbstractNbmMojo {
+public final class BrandingMojo extends AbstractNbmMojo {
 
     /**
      * directory where the the binary content is created.
      */
     @Parameter(required = true, defaultValue = "${project.build.directory}/nbm")
-    protected File nbmBuildDir;
+    private File nbmBuildDir;
 
     /**
      * output directory.
      */
     @Parameter(defaultValue = "${project.build.directory}", required = true)
-    protected File outputDirectory;
+    private File outputDirectory;
 
     /**
      * Location of the branded resources.
@@ -91,7 +97,12 @@ public class BrandingMojo extends AbstractNbmMojo {
      * cluster of the branding.
      */
     @Parameter(required = true, defaultValue = "extra")
-    protected String cluster;
+    private String cluster;
+
+    @Inject
+    public BrandingMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts) {
+        super(repositorySystem, mavenSession, mavenProjectHelper, artifacts);
+    }
 
     @Override
     public void execute()

@@ -34,10 +34,13 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
+
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.project.MavenProjectHelper;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.GenerateKey;
 import org.apache.tools.ant.taskdefs.SignJar;
@@ -53,9 +56,12 @@ import org.codehaus.plexus.util.DirectoryScanner;
 import org.codehaus.plexus.util.FileUtils;
 import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.InterpolationFilterReader;
+import org.eclipse.aether.RepositorySystem;
 import org.netbeans.nbbuild.MakeJNLP;
 import org.netbeans.nbbuild.ModuleSelector;
 import org.netbeans.nbbuild.VerifyJNLP;
+
+import javax.inject.Inject;
 
 /**
  * Create webstartable binaries for a 'nbm-application'.
@@ -66,14 +72,13 @@ import org.netbeans.nbbuild.VerifyJNLP;
  */
 @Deprecated(forRemoval = true,since = "14.3")
 @Mojo(name = "webstart-app", defaultPhase = LifecyclePhase.PACKAGE)
-public class CreateWebstartAppMojo
-        extends AbstractNbmMojo {
+public final class CreateWebstartAppMojo extends AbstractNbmMojo {
 
     /**
      * The branding token for the application based on NetBeans platform.
      */
     @org.apache.maven.plugins.annotations.Parameter(required = true, property = "netbeans.branding.token")
-    protected String brandingToken;
+    private String brandingToken;
 
     /**
      * output directory where the the NetBeans application will be created.
@@ -177,6 +182,11 @@ public class CreateWebstartAppMojo
      */
     @org.apache.maven.plugins.annotations.Parameter(property = "netbeans.run.params")
     private String additionalArguments;
+
+    @Inject
+    public CreateWebstartAppMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts) {
+        super(repositorySystem, mavenSession, mavenProjectHelper, artifacts);
+    }
 
     /**
      *

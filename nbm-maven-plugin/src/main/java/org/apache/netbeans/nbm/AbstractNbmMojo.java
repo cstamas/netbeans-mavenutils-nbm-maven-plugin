@@ -51,17 +51,19 @@ import org.eclipse.aether.util.artifact.JavaScopes;
 
 public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
 
-    @Component
-    protected RepositorySystem repositorySystem;
+    protected final RepositorySystem repositorySystem;
+    protected final MavenSession mavenSession;
+    protected final MavenProjectHelper mavenProjectHelper;
+    protected final Artifacts artifacts;
 
-    @Component
-    protected MavenSession mavenSession;
+    public AbstractNbmMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts) {
+        this.repositorySystem = repositorySystem;
+        this.mavenSession = mavenSession;
+        this.mavenProjectHelper = mavenProjectHelper;
+        this.artifacts = artifacts;
+    }
 
-    @Component
-    protected MavenProjectHelper mavenProjectHelper;
-
-    static boolean matchesLibrary(Artifact artifact, String scope, List<String> libraries, ExamineManifest depExaminator,
-                                  Log log, boolean useOsgiDependencies) {
+    protected boolean matchesLibrary(Artifact artifact, String scope, List<String> libraries, ExamineManifest depExaminator, Log log, boolean useOsgiDependencies) {
         String artId = artifact.getArtifactId();
         String grId = artifact.getGroupId();
         String id = grId + ":" + artId;
@@ -74,7 +76,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
             log.debug(id + " omitted as module library, has scope 'provided/system'");
             return false;
         }
-        if ("nbm".equals(artifact.getExtension())) {
+        if ("nbm".equals(artifacts.getArtifactType(artifact).getId())) {
             return false;
         }
         if (depExaminator.isNetBeansModule() || (useOsgiDependencies && depExaminator.isOsgiBundle())) {
@@ -86,7 +88,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         return true;
     }
 
-    static Dependency resolveNetBeansDependency(Artifact artifact, List<Dependency> deps, ExamineManifest manifest, Log log) {
+    protected Dependency resolveNetBeansDependency(Artifact artifact, List<Dependency> deps, ExamineManifest manifest, Log log) {
         String artId = artifact.getArtifactId();
         String grId = artifact.getGroupId();
         String id = grId + ":" + artId;
@@ -103,7 +105,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
                 }
             }
         }
-        if ("nbm".equals(artifact.getExtension())) {
+        if ("nbm".equals(artifacts.getArtifactType(artifact).getId())) {
             Dependency dep = new Dependency();
             dep.setId(id);
             dep.setType("spec");
@@ -137,7 +139,6 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
     }
 
     protected final NetBeansModule createDefaultDescriptor(MavenProject project, boolean log) {
-
         if (log) {
             getLog().info("No Module Descriptor defined, trying to fallback to generated values:");
         }
@@ -145,7 +146,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         return module;
     }
 
-    static List<Artifact> getLibraryArtifacts(DependencyNode treeRoot, NetBeansModule module,
+    protected List<Artifact> getLibraryArtifacts(DependencyNode treeRoot, NetBeansModule module,
                                               List<Artifact> runtimeArtifacts,
                                               Map<Artifact, ExamineManifest> examinerCache, Log log,
                                               boolean useOsgiDependencies)
@@ -165,7 +166,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         return include;
     }
 
-    static List<ModuleWrapper> getModuleDependencyArtifacts(DependencyNode treeRoot, NetBeansModule module,
+    protected List<ModuleWrapper> getModuleDependencyArtifacts(DependencyNode treeRoot, NetBeansModule module,
             Dependency[] customDependencies, MavenProject project,
             Map<Artifact, ExamineManifest> examinerCache,
             List<Artifact> libraryArtifacts, Log log,
@@ -196,7 +197,6 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         }
         List<ModuleWrapper> include = new ArrayList<ModuleWrapper>();
 
-        @SuppressWarnings("unchecked")
         Collection<Artifact> artifacts = RepositoryUtils.toArtifacts(project.getCompileArtifacts());
         for (Artifact artifact : artifacts) {
             if (libraryArtifacts.contains(artifact)) {
@@ -315,7 +315,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
 
     protected final ArtifactResult turnJarToNbmFile(Artifact art, MavenProject project)
             throws MojoExecutionException {
-        if ("jar".equals(art.getType()) || "nbm".equals(art.getType())) {
+        if ("jar".equals(artifacts.getArtifactType(art).getId()) || "nbm".equals(artifacts.getArtifactType(art).getId())) {
             //TODO, it would be nice to have a check to see if the
             // "to-be-created" module nbm artifact is actually already in the
             // list of dependencies (as "nbm-file") or not..
@@ -411,7 +411,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         return nbmArt;
     }
 
-    static Date getOutputTimestampOrNow(MavenProject project) {
+    protected static Date getOutputTimestampOrNow(MavenProject project) {
         return MavenArchiver.parseBuildOutputTimestamp(project.getProperties().getProperty("project.build.outputTimestamp"))
                 .map(Date::from)
                 .orElseGet(Date::new);

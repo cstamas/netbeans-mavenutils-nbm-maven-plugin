@@ -21,12 +21,16 @@ package org.apache.netbeans.nbm;
 
 import org.apache.maven.RepositoryUtils;
 import org.apache.maven.artifact.handler.manager.ArtifactHandlerManager;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.ArtifactProperties;
 import org.eclipse.aether.artifact.ArtifactType;
 import org.eclipse.aether.artifact.ArtifactTypeRegistry;
-import org.eclipse.aether.artifact.DefaultArtifactType;
 
+import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Helper class for working with Resolver {@link org.eclipse.aether.artifact.Artifact} classes.
@@ -40,9 +44,21 @@ public final class Artifacts {
      */
     private final ArtifactTypeRegistry artifactTypeRegistry;
 
+    @Inject
     public Artifacts(ArtifactHandlerManager artifactHandlerManager) {
         this.artifactTypeRegistry = RepositoryUtils.newArtifactTypeRegistry(artifactHandlerManager);
     }
 
-    public static final ArtifactType NBM = new DefaultArtifactType();
+    public ArtifactType getArtifactType(String name) {
+        requireNonNull(name);
+        // Note: general contract say this call may return null, BUT see ctor: this instance is backed by
+        // Maven ArtifactHandlerManager that NEVER returns null, so this instance does not either.
+        // Also, we should use this call ONLY to ask for "known to exists" types as we defined them, like "nbm" is.
+        return artifactTypeRegistry.get(name);
+    }
+
+    public ArtifactType getArtifactType(Artifact artifact) {
+        requireNonNull(artifact);
+        return getArtifactType(artifact.getProperty(ArtifactProperties.TYPE, artifact.getExtension()));
+    }
 }

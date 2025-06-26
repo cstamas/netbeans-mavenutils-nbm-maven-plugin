@@ -40,6 +40,7 @@ import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Copy;
 import org.apache.tools.ant.types.FileSet;
 import org.codehaus.plexus.archiver.gzip.GZipArchiver;
+import org.eclipse.aether.RepositorySystem;
 import org.netbeans.nbbuild.MakeUpdateDesc;
 
 /**
@@ -52,19 +53,19 @@ import org.netbeans.nbbuild.MakeUpdateDesc;
         defaultPhase = LifecyclePhase.PACKAGE,
         aggregator = true,
         requiresDependencyResolution = ResolutionScope.RUNTIME)
-public class CreateUpdateSiteMojo
-        extends AbstractNbmMojo {
+public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
 
     /**
      * output directory.
      */
     @Parameter(required = true, defaultValue = "${project.build.directory}")
-    protected File outputDirectory;
+    private File outputDirectory;
     /**
      * autoupdate site xml file name.
      */
     @Parameter(defaultValue = "updates.xml", property = "maven.nbm.updatesitexml")
-    protected String fileName;
+    private String fileName;
+
     /**
      * A custom distribution base for the nbms in the update site. If NOT
      * defined, the update site will use a simple relative URL, which is
@@ -103,6 +104,11 @@ public class CreateUpdateSiteMojo
      */
     @Parameter
     private List<String> updateSiteIncludes;
+
+    @Inject
+    public CreateUpdateSiteMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts) {
+        super(repositorySystem, mavenSession, mavenProjectHelper, artifacts);
+    }
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
