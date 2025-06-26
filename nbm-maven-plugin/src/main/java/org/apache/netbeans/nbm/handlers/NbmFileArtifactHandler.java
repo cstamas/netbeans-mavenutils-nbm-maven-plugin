@@ -25,8 +25,10 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 @Singleton
-@Named("nbm-file")
+@Named(NbmFileArtifactHandler.NAME)
 public class NbmFileArtifactHandler implements ArtifactHandler {
+    public static final String NAME = "nbm-file";
+
     @Override
     public String getExtension() {
         return "nbm";
@@ -39,7 +41,7 @@ public class NbmFileArtifactHandler implements ArtifactHandler {
 
     @Override
     public String getPackaging() {
-        return "nbm-file";
+        return NAME;
     }
 
     @Override

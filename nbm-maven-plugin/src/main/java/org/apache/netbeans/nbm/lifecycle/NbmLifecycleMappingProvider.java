@@ -19,9 +19,14 @@ package org.apache.netbeans.nbm.lifecycle;
  * under the License.
  */
 
+import org.apache.netbeans.nbm.handlers.NbmArtifactHandler;
+
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+/**
+ * For contents see filtered properties in this same package.
+ */
 @Singleton
-@Named("nbm")
+@Named(NbmArtifactHandler.NAME)
 public abstract class NbmLifecycleMappingProvider extends LifecycleMappingProviderSupport {}
