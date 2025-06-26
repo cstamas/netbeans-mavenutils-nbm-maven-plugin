@@ -26,8 +26,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.maven.RepositoryUtils;
 import org.apache.maven.archiver.MavenArchiver;
@@ -197,7 +200,8 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         }
         List<ModuleWrapper> include = new ArrayList<ModuleWrapper>();
 
-        Collection<Artifact> artifacts = RepositoryUtils.toArtifacts(project.getCompileArtifacts());
+        Set<String> compileScopes = new HashSet<>(Arrays.asList(JavaScopes.COMPILE, JavaScopes.PROVIDED, JavaScopes.SYSTEM));
+        Collection<Artifact> artifacts= RepositoryUtils.toArtifacts(project.getDependencyArtifacts().stream().filter(a -> compileScopes.contains(a.getScope())).collect(Collectors.toList()));
         for (Artifact artifact : artifacts) {
             if (libraryArtifacts.contains(artifact)) {
                 continue;
@@ -215,15 +219,6 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
                 wr.dependency = dep;
                 wr.artifact = artifact;
                 wr.transitive = false;
-                //only direct deps matter to us..
-                if (depExaminator.isNetBeansModule() && artifact.getDependencyTrail().size() > 2) {
-                    log.debug(
-                            ArtifactIdUtils.toId(artifact)
-                            + " omitted as NetBeans module dependency, not a direct one. "
-                            + "Declare it in the pom for inclusion.");
-                    wr.transitive = true;
-
-                }
                 include.add(wr);
             } else {
                 if (useOsgiDependencies && depExaminator.isOsgiBundle()) {
@@ -246,20 +241,9 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
 
                     wr.artifact = artifact;
                     wr.transitive = false;
-                    //only direct deps matter to us..
-                    if (artifact.getDependencyTrail().size() > 2) {
-                        log.debug(
-                                ArtifactIdUtils.toId(artifact)
-                                + " omitted as NetBeans module OSGi dependency, not a direct one. "
-                                + "Declare it in the pom for inclusion.");
-                        wr.transitive = true;
-
-                    } else {
-                        if (print) {
-                            log.info("Adding OSGi bundle dependency - " + id);
-                        }
+                    if (print) {
+                        log.info("Adding OSGi bundle dependency - " + id);
                     }
-
                     include.add(wr);
                 }
             }
@@ -267,19 +251,13 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         return include;
     }
 
-    static class ModuleWrapper {
-
+    public static class ModuleWrapper {
         Dependency dependency;
-
         Artifact artifact;
-
         boolean transitive = true;
-
         boolean osgi = false;
-
     }
 
-    //copied from dependency:tree mojo
     protected DependencyNode createDependencyTree(ProjectBuildingRequest project, DependencyGraphBuilder dependencyGraphBuilder,
             String scope)
             throws MojoExecutionException {
@@ -373,7 +351,6 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
     }
 
     protected static final class ArtifactResult {
-
         private final Artifact converted;
         private final ExamineManifest manifest;
 
