@@ -185,7 +185,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         List<ModuleWrapper> include = new ArrayList<ModuleWrapper>();
 
         Set<String> compileScopes = new HashSet<>(Arrays.asList(JavaScopes.COMPILE, JavaScopes.PROVIDED, JavaScopes.SYSTEM));
-        Collection<Artifact> artifacts= RepositoryUtils.toArtifacts(project.getDependencyArtifacts().stream().filter(a -> compileScopes.contains(a.getScope())).collect(Collectors.toList()));
+        Collection<Artifact> artifacts= RepositoryUtils.toArtifacts(project.getDependencyArtifacts().stream().filter(a -> a.getArtifactHandler().isAddedToClasspath()).filter(a -> compileScopes.contains(a.getScope())).collect(Collectors.toList()));
         for (Artifact artifact : artifacts) {
             if (libraryArtifacts.contains(artifact)) {
                 continue;
@@ -245,9 +245,9 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
     protected DependencyNode createDependencyTree(MavenProject project, boolean includeRuntime) throws MojoExecutionException {
         DefaultDependencyResolutionRequest request = new DefaultDependencyResolutionRequest(project, session.getRepositorySession());
         if (includeRuntime) {
-            request.setResolutionFilter(new ScopeDependencyFilter("test"));
+            request.setResolutionFilter(new ScopeDependencyFilter(JavaScopes.TEST));
         } else {
-            request.setResolutionFilter(new ScopeDependencyFilter("runtime", "test"));
+            request.setResolutionFilter(new ScopeDependencyFilter(JavaScopes.RUNTIME, JavaScopes.TEST));
         }
 
         try {
@@ -273,7 +273,6 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
                 // the build via WorkspaceReader.
                 // That's fine here, as all we need is to know if project is osgi or nbm module.
                 // the nbm file has to be in local repository though.
-                // SPLIT REPOSITORY SUPPORT: use APIs!
                 String path = artifacts.pathOf(art);
                 File jar2 = new File(session.getRepositorySession().getLocalRepository().getBasedir(), path.replace("/", File.separator));
                 File manifest = new File(jar, "META-INF/MANIFEST.MF");
