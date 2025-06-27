@@ -58,7 +58,6 @@ import java.util.zip.ZipFile;
 import javax.inject.Inject;
 
 import org.apache.maven.RepositoryUtils;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
@@ -186,7 +185,7 @@ public final class CreateClusterAppMojo extends AbstractNbmMojo {
             nbmBuildDirFile.mkdirs();
         }
 
-        if ("nbm-application".equals(mavenSession.getCurrentProject().getPackaging())) {
+        if ("nbm-application".equals(project.getPackaging())) {
             Project antProject = registerNbmAntTasks();
 
             Set<String> wrappedBundleCNBs = new HashSet<>(100);
@@ -208,9 +207,9 @@ public final class CreateClusterAppMojo extends AbstractNbmMojo {
 
             List<BundleTuple> bundles = new ArrayList<>();
 
-            Collection<Artifact> artifacts = RepositoryUtils.toArtifacts(mavenSession.getCurrentProject().getArtifacts());
+            Collection<Artifact> artifacts = RepositoryUtils.toArtifacts(project.getArtifacts());
             for (Artifact art : artifacts) {
-                ArtifactResult res = turnJarToNbmFile(art, mavenSession.getCurrentProject());
+                ArtifactResult res = turnJarToNbmFile(art, project);
                 if (res.hasConvertedArtifact()) {
                     art = res.getConvertedArtifact();
                 }
@@ -515,7 +514,7 @@ public final class CreateClusterAppMojo extends AbstractNbmMojo {
             clusterModules.clear();
 
             //now assign the cluster to bundles based on dependencies..
-            assignClustersToBundles(mavenSession.getCurrentProject(), bundles, wrappedBundleCNBs, clusterDependencies, cluster2depClusters, getLog());
+            assignClustersToBundles(project, bundles, wrappedBundleCNBs, clusterDependencies, cluster2depClusters, getLog());
 
             for (BundleTuple ent : bundles) {
                 Artifact art = ent.artifact;
@@ -568,7 +567,7 @@ public final class CreateClusterAppMojo extends AbstractNbmMojo {
                         ex.printStackTrace();
                     }
                 }
-                stamp.setLastModified(getOutputTimestampOrNow(mavenSession.getCurrentProject()).getTime());
+                stamp.setLastModified(getOutputTimestampOrNow(project).getTime());
             }
         }
         try {
@@ -778,8 +777,8 @@ public final class CreateClusterAppMojo extends AbstractNbmMojo {
                             artifact = new DefaultArtifact(coords[0], coords[1], coords[4], coords[3], coords[2]);
                         }
                         try {
-                            ArtifactRequest request = new ArtifactRequest(artifact, mavenSession.getCurrentProject().getRemoteProjectRepositories(), "nbm");
-                            org.eclipse.aether.resolution.ArtifactResult result = repositorySystem.resolveArtifact(mavenSession.getRepositorySession(), request);
+                            ArtifactRequest request = new ArtifactRequest(artifact, project.getRemoteProjectRepositories(), "nbm");
+                            org.eclipse.aether.resolution.ArtifactResult result = repositorySystem.resolveArtifact(session.getRepositorySession(), request);
                             artifact = result.getArtifact();
                             FileUtils.copyFile(artifact.getFile(), f);
                             found = true;
@@ -815,7 +814,7 @@ public final class CreateClusterAppMojo extends AbstractNbmMojo {
     }
 
     private File getHarnessNbm() throws MojoExecutionException {
-        Collection<Artifact> artifacts = RepositoryUtils.toArtifacts(mavenSession.getCurrentProject().getArtifacts());
+        Collection<Artifact> artifacts = RepositoryUtils.toArtifacts(project.getArtifacts());
         String version = null;
         for (Artifact a : artifacts) {
             if ((groupIdPrefix + ".modules").equals(a.getGroupId()) && "org-netbeans-bootstrap".equals(a.getArtifactId())) {
@@ -838,8 +837,8 @@ public final class CreateClusterAppMojo extends AbstractNbmMojo {
                 version,
                 nmbFileType);
         try {
-            ArtifactRequest request = new ArtifactRequest(nbmArt, mavenSession.getCurrentProject().getRemoteProjectRepositories(), "nbm");
-            org.eclipse.aether.resolution.ArtifactResult result = repositorySystem.resolveArtifact(mavenSession.getRepositorySession(), request);
+            ArtifactRequest request = new ArtifactRequest(nbmArt, project.getRemoteProjectRepositories(), "nbm");
+            org.eclipse.aether.resolution.ArtifactResult result = repositorySystem.resolveArtifact(session.getRepositorySession(), request);
             nbmArt = result.getArtifact();
         } catch (ArtifactResolutionException e) {
             throw new MojoExecutionException("Failed to retrieve the nbm file from repository", e);

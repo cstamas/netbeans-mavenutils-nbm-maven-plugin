@@ -35,7 +35,6 @@ import java.util.StringTokenizer;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -197,7 +196,7 @@ public final class CreateWebstartAppMojo extends AbstractNbmMojo {
     @Override
     public void execute()
             throws MojoExecutionException, MojoFailureException {
-        if (!"nbm-application".equals(mavenSession.getCurrentProject().getPackaging())) {
+        if (!"nbm-application".equals(project.getPackaging())) {
             throw new MojoExecutionException(
                     "This goal only makes sense on project with nbm-application packaging.");
         }
@@ -316,13 +315,13 @@ public final class CreateWebstartAppMojo extends AbstractNbmMojo {
             Properties props = new Properties();
             props.setProperty("jnlp.codebase", localCodebase);
             props.setProperty("app.name", brandingToken);
-            props.setProperty("app.title", mavenSession.getCurrentProject().getName());
-            if (mavenSession.getCurrentProject().getOrganization() != null) {
-                props.setProperty("app.vendor", mavenSession.getCurrentProject().getOrganization().getName());
+            props.setProperty("app.title", project.getName());
+            if (project.getOrganization() != null) {
+                props.setProperty("app.vendor", project.getOrganization().getName());
             } else {
                 props.setProperty("app.vendor", "Nobody");
             }
-            String description = mavenSession.getCurrentProject().getDescription() != null ? mavenSession.getCurrentProject().getDescription() : "No Project Description";
+            String description = project.getDescription() != null ? session.getCurrentProject().getDescription() : "No Project Description";
             props.setProperty("app.description", description);
             props.setProperty("branding.token", brandingToken);
             props.setProperty("master.jnlp.file.name", masterJnlpFileName);
@@ -542,7 +541,7 @@ public final class CreateWebstartAppMojo extends AbstractNbmMojo {
             archiver.createArchive();
 
             // attach standalone so that it gets installed/deployed
-            mavenProjectHelper.attachArtifact(mavenSession.getCurrentProject(), "war", webstartClassifier, destinationFile);
+            mavenProjectHelper.attachArtifact(project, "war", webstartClassifier, destinationFile);
 
         } catch (Exception ex) {
             throw new MojoExecutionException("Error creating webstartable binary.", ex);

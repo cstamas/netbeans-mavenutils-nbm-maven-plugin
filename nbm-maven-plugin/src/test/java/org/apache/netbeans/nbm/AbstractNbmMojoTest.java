@@ -27,13 +27,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import junit.framework.TestCase;
-import org.apache.maven.RepositoryUtils;
-import org.apache.maven.artifact.handler.manager.DefaultArtifactHandlerManager;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.apache.maven.project.MavenProject;
 import org.apache.netbeans.nbm.model.Dependency;
 import org.apache.netbeans.nbm.model.NetBeansModule;
+import org.apache.netbeans.nbm.stubs.ArtifactHandlerManagerStub;
 import org.apache.netbeans.nbm.utils.ExamineManifest;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.ArtifactType;
@@ -50,7 +49,7 @@ public class AbstractNbmMojoTest extends TestCase {
 
     Log log = null;
     DependencyNode treeRoot = null;
-    Artifacts artifacts = new Artifacts(new DefaultArtifactHandlerManager());
+    Artifacts artifacts = new Artifacts(new ArtifactHandlerManagerStub());
 
     public AbstractNbmMojoTest(String testName) {
         super(testName);

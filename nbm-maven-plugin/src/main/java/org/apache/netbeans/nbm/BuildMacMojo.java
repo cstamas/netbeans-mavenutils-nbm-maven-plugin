@@ -18,14 +18,12 @@ package org.apache.netbeans.nbm;
  * specific language governing permissions and limitations
  * under the License.
  */
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.project.ProjectDependenciesResolver;
 import org.codehaus.plexus.archiver.util.DefaultFileSet;
@@ -115,7 +113,7 @@ public final class BuildMacMojo extends AbstractNbmMojo {
     @Override
     public void execute()
             throws MojoExecutionException, MojoFailureException {
-        if (!"nbm-application".equals(mavenSession.getCurrentProject().getPackaging())) {
+        if (!"nbm-application".equals(project.getPackaging())) {
             throw new MojoExecutionException(
                     "This goal only makes sense on project with 'nbm-application' packaging.");
         }
@@ -177,7 +175,7 @@ public final class BuildMacMojo extends AbstractNbmMojo {
             try (Stream<String> lines = Files.lines(macInfoplistFile.toPath())) {
                 String infoPListString = lines.map(s -> s.replace("${app.title}", macAppTitle))
                         .map(s -> s.replace("${app.name}", brandingToken))
-                        .map(s -> s.replace("${app.version}", mavenSession.getCurrentProject().getVersion()))
+                        .map(s -> s.replace("${app.version}", project.getVersion()))
                         .collect(Collectors.joining("\n"));
 
                 Files.write(infoplist, infoPListString.getBytes());
@@ -199,7 +197,7 @@ public final class BuildMacMojo extends AbstractNbmMojo {
                 String infoPListString = reader.lines()
                         .map(s -> s.replace("${app.title}", macAppTitle))
                         .map(s -> s.replace("${app.name}", brandingToken))
-                        .map(s -> s.replace("${app.version}", mavenSession.getCurrentProject().getVersion()))
+                        .map(s -> s.replace("${app.version}", project.getVersion()))
                         .collect(Collectors.joining("\n"));
 
                 Files.write(infoplist, infoPListString.getBytes());

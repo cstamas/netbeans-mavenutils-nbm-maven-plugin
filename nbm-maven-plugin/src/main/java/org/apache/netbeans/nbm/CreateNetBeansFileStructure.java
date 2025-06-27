@@ -44,7 +44,6 @@ import java.util.logging.Logger;
 import javax.inject.Inject;
 
 import org.apache.maven.RepositoryUtils;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -240,7 +239,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
         if (descriptor != null && descriptor.exists()) {
             module = readModuleDescriptor(descriptor);
         } else {
-            module = createDefaultDescriptor(mavenSession.getCurrentProject(), false);
+            module = createDefaultDescriptor(project, false);
         }
         //same moduleType related code in NetBeansManifestUpdateMojo.java
         String type = moduleType;
@@ -315,7 +314,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
 
         if (module != null) {
             // copy libraries to the designated place..
-            Collection<Artifact> artifacts = RepositoryUtils.toArtifacts(mavenSession.getCurrentProject().getRuntimeArtifacts());
+            Collection<Artifact> artifacts = RepositoryUtils.toArtifacts(project.getRuntimeArtifacts());
             for (Artifact artifact : artifacts) {
                 File source = artifact.getFile();
 
@@ -442,7 +441,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
             boolean hasStandard = false;
             for (NbmResource res : ress) {
                 if (res.getBaseDirectory() != null) {
-                    File base = new File(mavenSession.getCurrentProject().getBasedir(), res.getBaseDirectory());
+                    File base = new File(project.getBasedir(), res.getBaseDirectory());
                     FileSet set = new FileSet();
                     set.setDir(base);
                     for (String inc : res.getIncludes()) {
@@ -523,8 +522,8 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
                         + ", i.e. build is platform dependent!");
             }
             MavenResourcesExecution mavenResourcesExecution
-                    = new MavenResourcesExecution(Arrays.asList(nbmResources), clusterDir, mavenSession.getCurrentProject(), encoding,
-                            Collections.emptyList(), Collections.emptyList(), mavenSession);
+                    = new MavenResourcesExecution(Arrays.asList(nbmResources), clusterDir, project, encoding,
+                            Collections.emptyList(), Collections.emptyList(), session);
             mavenResourcesExecution.setEscapeWindowsPaths(true);
             mavenResourcesFiltering.filterResources(mavenResourcesExecution);
         } catch (MavenFilteringException ex) {

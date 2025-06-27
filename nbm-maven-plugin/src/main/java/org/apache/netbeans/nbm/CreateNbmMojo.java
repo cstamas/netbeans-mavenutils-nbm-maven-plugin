@@ -26,7 +26,6 @@ import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Developer;
 import org.apache.maven.model.License;
 import org.apache.maven.model.Organization;
@@ -197,9 +196,9 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
             return;
         }
 
-        if ("pom".equals(mavenSession.getCurrentProject().getPackaging())) {
+        if ("pom".equals(project.getPackaging())) {
             getLog().info(
-                    "Skipping " + mavenSession.getCurrentProject().getId() + ", no nbm:nbm execution for 'pom' packaging");
+                    "Skipping " + project.getId() + ", no nbm:nbm execution for 'pom' packaging");
             return;
         }
         super.execute();
@@ -251,7 +250,7 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
             getLog().warn("Module descriptor's licenseName field is deprecated, use plugin's configuration in pom.xml");
         }
         if (module.getLicenseFile() != null) {
-            File lf = new File(mavenSession.getCurrentProject().getBasedir(), module.getLicenseFile());
+            File lf = new File(project.getBasedir(), module.getLicenseFile());
             licFile = lf;
             getLog().warn("Module descriptor's licenseFile field is deprecated, use plugin's configuration in pom.xml");
 
@@ -293,10 +292,9 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
                     dist = distribUrl + (distribUrl.endsWith("/") ? "" : "/") + nbmFile.getName();
                 }
             } else {
-                MavenProject project = mavenSession.getCurrentProject();
                 ArtifactType nbmFileType = artifacts.getArtifactType(NbmFileArtifactHandler.NAME);
                 Artifact art = new DefaultArtifact(project.getGroupId(), project.getArtifactId(), null, nbmFileType.getExtension(), project.getVersion(), nbmFileType);
-                dist = distRepository.getUrl() + (distRepository.getUrl().endsWith("/") ? "" : "/") + mavenSession.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
+                dist = distRepository.getUrl() + (distRepository.getUrl().endsWith("/") ? "" : "/") + session.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
 
             }
             nbmTask.setDistribution(dist);
@@ -307,7 +305,7 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
             nbmTask.setTargetcluster(cluster);
         }
         //MNBMODULE-217 avoid using the static DATE_FORMAT variable in MavenNBM.java (in ant harness)
-        nbmTask.setReleasedate(DATE_FORMAT.format(getOutputTimestampOrNow(mavenSession.getCurrentProject())));
+        nbmTask.setReleasedate(DATE_FORMAT.format(getOutputTimestampOrNow(project)));
         Path updaterPath = nbmTask.createUpdaterJar();
         try {
             // locate a public class from updater to get the path
@@ -325,7 +323,7 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
         try {
             File nbmfile = new File(buildDir, nbmFile.getName());
             FileUtils.getFileUtils().copyFile(nbmFile, nbmfile);
-            mavenProjectHelper.attachArtifact(mavenSession.getCurrentProject(), "nbm-file", null, nbmfile);
+            mavenProjectHelper.attachArtifact(project, "nbm-file", null, nbmfile);
         } catch (IOException ex) {
             throw new MojoExecutionException("Cannot copy nbm to build directory", ex);
         }
@@ -333,12 +331,12 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
 
     private String createDefaultLicenseHeader() {
         String organization = "";
-        Organization org = mavenSession.getCurrentProject().getOrganization();
+        Organization org = project.getOrganization();
         if (org != null) {
             organization = org.getName();
         }
         if (organization == null) {
-            List<Developer> devs = mavenSession.getCurrentProject().getDevelopers();
+            List<Developer> devs = project.getDevelopers();
             if (!devs.isEmpty()) {
                 Iterator<Developer> dvs = devs.iterator();
                 String devsString = "";
@@ -353,8 +351,8 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
             organization = ""; //what's a good default value?
         }
         String date = "";
-        if (mavenSession.getCurrentProject().getInceptionYear() != null) {
-            date = mavenSession.getCurrentProject().getInceptionYear();
+        if (project.getInceptionYear() != null) {
+            date = project.getInceptionYear();
         }
         String year = Integer.toString(Calendar.getInstance().get(Calendar.YEAR));
         if (!year.equals(date)) {
@@ -366,7 +364,7 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
     private String createDefaultLicenseText() {
         String toRet = "License terms:\n";
 
-        List<License> licenses = mavenSession.getCurrentProject().getLicenses();
+        List<License> licenses = project.getLicenses();
         if (licenses != null && !licenses.isEmpty()) {
             Iterator<License> lic = licenses.iterator();
             while (lic.hasNext()) {

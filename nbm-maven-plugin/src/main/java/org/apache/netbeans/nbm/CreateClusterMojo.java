@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -85,7 +84,7 @@ public final class CreateClusterMojo extends AbstractNbmMojo {
             clusterBuildDir.mkdirs();
         }
 
-        List<MavenProject> reactorProjects = mavenSession.getProjects();
+        List<MavenProject> reactorProjects = session.getProjects();
         if (reactorProjects != null && !reactorProjects.isEmpty()) {
             for (MavenProject proj : reactorProjects) {
 
@@ -166,7 +165,7 @@ public final class CreateClusterMojo extends AbstractNbmMojo {
                             ex.printStackTrace();
                         }
                     }
-                    stamp.setLastModified(getOutputTimestampOrNow(mavenSession.getCurrentProject()).getTime());
+                    stamp.setLastModified(getOutputTimestampOrNow(project).getTime());
                 }
             }
             getLog().info("Created NetBeans module cluster(s) at " + clusterBuildDir);

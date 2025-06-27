@@ -42,7 +42,6 @@ import java.util.regex.Pattern;
 import javax.inject.Inject;
 
 import org.apache.maven.RepositoryUtils;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -299,7 +298,7 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
             module = readModuleDescriptor(descriptor);
             getLog().warn("descriptor parameter is deprecated, use equivalent mojo parameters instead.");
         } else {
-            module = createDefaultDescriptor(mavenSession.getCurrentProject(), false);
+            module = createDefaultDescriptor(project, false);
         }
 
         String mtype = moduleType;
@@ -324,8 +323,7 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
 //<!-- if a NetBeans specific manifest is defined, examine this one, otherwise the already included one.
 // ignoring the case when some of the NetBeans attributes are already defined in the jar and more is included.
         File specialManifest = sourceManifestFile;
-        File nbmManifest = (module.getManifest() != null ? new File(
-                mavenSession.getCurrentProject().getBasedir(), module.getManifest()) : null);
+        File nbmManifest = (module.getManifest() != null ? new File(project.getBasedir(), module.getManifest()) : null);
         if (nbmManifest != null && nbmManifest.exists()) {
             //deprecated, but if actually defined, will use it.
             specialManifest = nbmManifest;
@@ -354,10 +352,10 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
         } else {
             manifest = new Manifest();
         }
-        Date date = getOutputTimestampOrNow(mavenSession.getCurrentProject());
-        String specVersion = AdaptNbVersion.adaptVersion(mavenSession.getCurrentProject().getVersion(),
+        Date date = getOutputTimestampOrNow(project);
+        String specVersion = AdaptNbVersion.adaptVersion(project.getVersion(),
                 AdaptNbVersion.TYPE_SPECIFICATION, date);
-        String implVersion = AdaptNbVersion.adaptVersion(mavenSession.getCurrentProject().getVersion(),
+        String implVersion = AdaptNbVersion.adaptVersion(project.getVersion(),
                 AdaptNbVersion.TYPE_IMPLEMENTATION, date);
         Manifest.Section mainSection = manifest.getMainSection();
         conditionallyAddAttribute(mainSection,
@@ -408,24 +406,21 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
 //        conditionallyAddAttribute(mainSection, "OpenIDE-Module-IDE-Dependencies", "IDE/1 > 3.40");
         // localization items
         if (!examinator.isLocalized()) {
+            conditionallyAddAttribute(mainSection, "OpenIDE-Module-Display-Category", project.getGroupId());
+            conditionallyAddAttribute(mainSection, "OpenIDE-Module-Name", project.getName());
             conditionallyAddAttribute(mainSection,
-                    "OpenIDE-Module-Display-Category", mavenSession.getCurrentProject().getGroupId());
-            conditionallyAddAttribute(mainSection, "OpenIDE-Module-Name",
-                    mavenSession.getCurrentProject().getName());
+                    "OpenIDE-Module-Short-Description", shorten(project.getDescription()));
             conditionallyAddAttribute(mainSection,
-                    "OpenIDE-Module-Short-Description", shorten(mavenSession.getCurrentProject().getDescription()));
-            conditionallyAddAttribute(mainSection,
-                    "OpenIDE-Module-Long-Description", mavenSession.getCurrentProject().getDescription());
+                    "OpenIDE-Module-Long-Description", project.getDescription());
         }
         getLog().debug("module =" + module);
 
-        DependencyNode treeroot = createDependencyTree(mavenSession.getCurrentProject(), includeRuntimeModuleLibraries);
+        DependencyNode treeroot = createDependencyTree(project, includeRuntimeModuleLibraries);
         Map<Artifact, ExamineManifest> examinerCache = new HashMap<Artifact, ExamineManifest>();
-        List<Artifact> libArtifacts = getLibraryArtifacts(artifacts, treeroot, module, RepositoryUtils.toArtifacts(mavenSession.getCurrentProject().getRuntimeArtifacts()),
+        List<Artifact> libArtifacts = getLibraryArtifacts(artifacts, treeroot, module, RepositoryUtils.toArtifacts(project.getRuntimeArtifacts()),
                 examinerCache, getLog(), useOSGiDependencies);
         List<ModuleWrapper> moduleArtifacts = getModuleDependencyArtifacts(treeroot, module, moduleDependencies,
-                mavenSession.getCurrentProject(), examinerCache,
-                libArtifacts, getLog(), useOSGiDependencies);
+                project, examinerCache, libArtifacts, getLog(), useOSGiDependencies);
         StringBuilder classPath = new StringBuilder();
         StringBuilder mavenClassPath = new StringBuilder();
         String dependencies = "";
@@ -608,13 +603,13 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
             Map<Artifact, ExamineManifest> examinerCache, List<ModuleWrapper> moduleArtifacts,
             String projectCodeNameBase)
             throws IOException, MojoExecutionException, MojoFailureException {
-        Set<String> deps = buildProjectDependencyClasses(mavenSession.getCurrentProject(), libArtifacts);
-        deps.retainAll(allProjectClasses(mavenSession.getCurrentProject()));
+        Set<String> deps = buildProjectDependencyClasses(project, libArtifacts);
+        deps.retainAll(allProjectClasses(project));
 
-        Set<String> own = projectModuleOwnClasses(mavenSession.getCurrentProject(), libArtifacts);
+        Set<String> own = projectModuleOwnClasses(project, libArtifacts);
         deps.removeAll(own);
         CollectModuleLibrariesNodeVisitor visitor = new CollectModuleLibrariesNodeVisitor(artifacts,
-                RepositoryUtils.toArtifacts(mavenSession.getCurrentProject().getRuntimeArtifacts()), examinerCache, getLog(), treeroot, useOSGiDependencies);
+                RepositoryUtils.toArtifacts(project.getRuntimeArtifacts()), examinerCache, getLog(), treeroot, useOSGiDependencies);
         treeroot.accept(visitor);
         Map<String, List<Artifact>> modules = visitor.getDeclaredArtifacts();
         Map<Artifact, Set<String>> moduleAllClasses = new HashMap<Artifact, Set<String>>();

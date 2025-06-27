@@ -21,8 +21,8 @@ package org.apache.netbeans.nbm;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-import org.apache.maven.artifact.handler.manager.DefaultArtifactHandlerManager;
 import org.apache.maven.plugin.testing.AbstractMojoTestCase;
+import org.apache.netbeans.nbm.stubs.ArtifactHandlerManagerStub;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
 
@@ -35,7 +35,7 @@ public class CreateNetBeansFileStructureTest extends AbstractMojoTestCase {
         String localRepository = System.getProperty("localRepository");
         Artifact a = new DefaultArtifact("junit", "junit", "jar", version);
         StringWriter w = new StringWriter();
-        CreateNetBeansFileStructure.writeExternal(new Artifacts(new DefaultArtifactHandlerManager()), new PrintWriter(w), a);
+        CreateNetBeansFileStructure.writeExternal(new Artifacts(new ArtifactHandlerManagerStub()), new PrintWriter(w), a);
         assertEquals(
                 "CRC:1161534166\n"
                 + "SIZE:384581\n"

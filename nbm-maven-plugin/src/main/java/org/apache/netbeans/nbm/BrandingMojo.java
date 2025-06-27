@@ -21,7 +21,6 @@ package org.apache.netbeans.nbm;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -107,7 +106,7 @@ public final class BrandingMojo extends AbstractNbmMojo {
     @Override
     public void execute()
             throws MojoExecutionException {
-        if (!"nbm".equals(mavenSession.getCurrentProject().getPackaging())) {
+        if (!"nbm".equals(project.getPackaging())) {
             getLog().error("The nbm:branding goal shall be used within a NetBeans module project only (packaging 'nbm')");
         }
         if (!brandingSources.isDirectory()) {

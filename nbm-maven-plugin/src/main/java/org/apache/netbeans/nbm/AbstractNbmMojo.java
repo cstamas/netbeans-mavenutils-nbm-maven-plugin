@@ -62,7 +62,9 @@ import org.eclipse.aether.util.filter.ScopeDependencyFilter;
 
 public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
     @Parameter(defaultValue = "${session}", required = true, readonly = true)
-    protected MavenSession mavenSession;
+    protected MavenSession session;
+    @Parameter(defaultValue = "${project}", required = true, readonly = true)
+    protected MavenProject project;
 
     protected final RepositorySystem repositorySystem;
     protected final MavenProjectHelper mavenProjectHelper;
@@ -241,7 +243,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
     }
 
     protected DependencyNode createDependencyTree(MavenProject project, boolean includeRuntime) throws MojoExecutionException {
-        DefaultDependencyResolutionRequest request = new DefaultDependencyResolutionRequest(project, mavenSession.getRepositorySession());
+        DefaultDependencyResolutionRequest request = new DefaultDependencyResolutionRequest(project, session.getRepositorySession());
         if (includeRuntime) {
             request.setResolutionFilter(new ScopeDependencyFilter("test"));
         } else {
@@ -272,8 +274,8 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
                 // That's fine here, as all we need is to know if project is osgi or nbm module.
                 // the nbm file has to be in local repository though.
                 // SPLIT REPOSITORY SUPPORT: use APIs!
-                String path = mavenSession.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
-                File jar2 = new File(mavenSession.getRepositorySession().getLocalRepository().getBasedir(), path.replace("/", File.separator));
+                String path = session.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
+                File jar2 = new File(session.getRepositorySession().getLocalRepository().getBasedir(), path.replace("/", File.separator));
                 File manifest = new File(jar, "META-INF/MANIFEST.MF");
 
                 if (!jar2.isFile() || !manifest.isFile()) {
@@ -289,7 +291,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
                 Artifact nbmArt = new DefaultArtifact(art.getGroupId(), art.getArtifactId(), art.getClassifier(), art.getExtension(), art.getVersion(), art.getProperties(), artifacts.getArtifactType(NbmFileArtifactHandler.NAME));
                 try {
                     ArtifactRequest request = new ArtifactRequest(nbmArt, project.getRemoteProjectRepositories(), "nbm");
-                    org.eclipse.aether.resolution.ArtifactResult result = repositorySystem.resolveArtifact(mavenSession.getRepositorySession(), request);
+                    org.eclipse.aether.resolution.ArtifactResult result = repositorySystem.resolveArtifact(session.getRepositorySession(), request);
                     nbmArt = result.getArtifact();
                 } catch (ArtifactResolutionException ex) {
                     //shall we check before actually resolving from repos?

@@ -21,14 +21,11 @@ package org.apache.netbeans.nbm;
 import java.io.File;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
 
 import org.apache.maven.RepositoryUtils;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -48,8 +45,6 @@ import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.ArtifactType;
 import org.eclipse.aether.artifact.DefaultArtifact;
-import org.eclipse.aether.repository.LocalRepository;
-import org.eclipse.aether.repository.LocalRepositoryManager;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.netbeans.nbbuild.MakeUpdateDesc;
 
@@ -142,13 +137,13 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
             }
         }
 
-        if ("nbm-application".equals(mavenSession.getCurrentProject().getPackaging())) {
-            Collection<Artifact> artifacts = RepositoryUtils.toArtifacts(mavenSession.getCurrentProject().getArtifacts());
+        if ("nbm-application".equals(project.getPackaging())) {
+            Collection<Artifact> artifacts = RepositoryUtils.toArtifacts(project.getArtifacts());
             for (Artifact art : artifacts) {
                 if (!matchesIncludes(art)) {
                     continue;
                 }
-                ArtifactResult res = turnJarToNbmFile(art, mavenSession.getCurrentProject());
+                ArtifactResult res = turnJarToNbmFile(art, project);
                 if (res.hasConvertedArtifact()) {
                     art = res.getConvertedArtifact();
                 }
@@ -161,7 +156,7 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
                         copyTask.setFlatten(true);
                         copyTask.setTodir(nbmBuildDirFile);
                     } else {
-                        String path = mavenSession.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
+                        String path = session.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
                         File f = new File(nbmBuildDirFile, path.replace('/', File.separatorChar));
                         copyTask.setTofile(f);
                     }
@@ -178,9 +173,9 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
             }
             getLog().info("Created NetBeans module cluster(s) at " + nbmBuildDirFile.getAbsoluteFile());
 
-        } else if (!mavenSession.getAllProjects().isEmpty()) {
+        } else if (!session.getAllProjects().isEmpty()) {
 
-            for (MavenProject proj : mavenSession.getAllProjects()) {
+            for (MavenProject proj : session.getAllProjects()) {
                 File projOutputDirectory = new File(proj.getBuild().getDirectory());
                 if (projOutputDirectory.exists()) {
                     Copy copyTask = (Copy) antProject.createTask("copy");
@@ -209,7 +204,7 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
                         }
                         ArtifactType npmFile = artifacts.getArtifactType(NbmFileArtifactHandler.NAME);
                         Artifact art = new DefaultArtifact(proj.getGroupId(), proj.getArtifactId(), null, npmFile.getExtension(), proj.getVersion(), npmFile);
-                        String path = mavenSession.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
+                        String path = session.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
                         File f = new File(nbmBuildDirFile, path.replace('/', File.separatorChar));
                         copyTask.setTofile(f);
                     }
@@ -251,8 +246,8 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
             File gzipped = new File(nbmBuildDirFile, fileName + ".gz");
             gz.setDestFile(gzipped);
             gz.createArchive();
-            if ("nbm-application".equals(mavenSession.getCurrentProject().getPackaging())) {
-                mavenProjectHelper.attachArtifact(mavenSession.getCurrentProject(), "xml.gz", "updatesite", gzipped);
+            if ("nbm-application".equals(project.getPackaging())) {
+                mavenProjectHelper.attachArtifact(project, "xml.gz", "updatesite", gzipped);
             }
         } catch (Exception ex) {
             throw new MojoExecutionException("Cannot create gzipped version of the update site xml file.", ex);
