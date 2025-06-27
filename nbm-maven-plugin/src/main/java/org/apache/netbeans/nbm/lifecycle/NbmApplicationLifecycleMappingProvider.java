@@ -29,4 +29,4 @@ import javax.inject.Singleton;
  */
 @Singleton
 @Named(NbmApplicationArtifactHandler.NAME)
-public abstract class NbmApplicationLifecycleMappingProvider extends LifecycleMappingProviderSupport {}
+public class NbmApplicationLifecycleMappingProvider extends LifecycleMappingProviderSupport {}
