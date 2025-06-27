@@ -76,8 +76,14 @@ public final class Artifacts {
      * but then remote repo (origin) is needed.
      * To get remote path, one need {@link org.eclipse.aether.spi.connector.layout.RepositoryLayout#getLocation(Artifact, boolean)}
      * instead, but this one is tricky.
-     *
+     * <p>
      * Ideally, one should not need the "path" of repo, just GAV and let resolver resolve it.
+     * Right now, codebase is broken if:
+     * <ul>
+     *     <li>user uses split local repository</li>
+     *     <li>dependency processed is a SNAPSHOT</li>
+     *     <li>etc...</li>
+     * </ul>
      */
     public String pathOf(Artifact artifact) {
         requireNonNull(artifact);
