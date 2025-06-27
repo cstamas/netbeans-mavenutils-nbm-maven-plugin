@@ -31,6 +31,7 @@ import java.io.UnsupportedEncodingException;
 
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -757,7 +758,7 @@ public final class CreateClusterAppMojo extends AbstractNbmMojo {
 
     private void externalDownload(File f, InputStream is) throws IOException {
         // Cf. org.netbeans.nbbuild.AutoUpdate
-        BufferedReader r = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+        BufferedReader r = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
         long crc = -1;
         long size = -1;
         boolean found = false;
