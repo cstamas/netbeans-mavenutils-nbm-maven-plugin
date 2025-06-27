@@ -63,7 +63,8 @@ public final class Artifacts {
     }
 
     /**
-     * Copy from resolver just to make things move: BUT USE OF THIS METHOD AND WHOLE APPROACH IS WRONG.
+     * TODO: reconsider what to do here
+     * Copied from resolver just to make things move: BUT USE OF THIS METHOD AND WHOLE APPROACH IS QUESTIONABLE.
      * After refactoring this single method will need to be (ideally) removed, or, replaced somehow.
      */
     public String pathOf(Artifact artifact) {
