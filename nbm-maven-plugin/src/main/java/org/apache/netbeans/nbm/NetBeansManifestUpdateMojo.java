@@ -440,7 +440,7 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
                     append(':').
                     append(a.getBaseVersion());
 
-            if (a.getClassifier() != null) {
+            if (a.getClassifier() != null && !a.getClassifier().trim().isEmpty()) {
                 mavenClassPath.append(":").append(a.getClassifier());
             }
         }

@@ -561,7 +561,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
         w.write(artifact.getVersion());
         w.write(':');
         w.write(artifacts.getArtifactType(artifact).getId());
-        if (artifact.getClassifier() != null) {
+        if (artifact.getClassifier() != null && !artifact.getClassifier().trim().isEmpty()) {
             w.write(':');
             w.write(artifact.getClassifier());
         }

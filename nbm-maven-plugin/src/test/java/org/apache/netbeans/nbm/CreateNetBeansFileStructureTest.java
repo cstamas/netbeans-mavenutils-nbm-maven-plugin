@@ -18,6 +18,7 @@ package org.apache.netbeans.nbm;
  * specific language governing permissions and limitations
  * under the License.
  */
+import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
@@ -33,7 +34,9 @@ public class CreateNetBeansFileStructureTest extends AbstractMojoTestCase {
         String version = "4.13.2";  // TODO must be in local repo downloaded by other means -> fix this test!
 
         String localRepository = System.getProperty("localRepository");
-        Artifact a = new DefaultArtifact("junit", "junit", "jar", version);
+        String path = "junit/junit/" + version + "/junit-" + version + ".jar";
+        File junitFile  = new File(new File(localRepository), path);
+        Artifact a = new DefaultArtifact("junit", "junit", "jar", version).setFile(junitFile);
         StringWriter w = new StringWriter();
         CreateNetBeansFileStructure.writeExternal(new Artifacts(new ArtifactHandlerManagerStub()), new PrintWriter(w), a);
         assertEquals(
