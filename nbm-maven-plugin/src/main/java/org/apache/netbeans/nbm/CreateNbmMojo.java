@@ -294,7 +294,7 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
             } else {
                 ArtifactType nbmFileType = artifacts.getArtifactType(NbmFileArtifactHandler.NAME);
                 Artifact art = new DefaultArtifact(project.getGroupId(), project.getArtifactId(), null, nbmFileType.getExtension(), project.getVersion(), nbmFileType);
-                dist = distRepository.getUrl() + (distRepository.getUrl().endsWith("/") ? "" : "/") + session.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
+                dist = distRepository.getUrl() + (distRepository.getUrl().endsWith("/") ? "" : "/") + artifacts.pathOf(art);
 
             }
             nbmTask.setDistribution(dist);

@@ -156,7 +156,7 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
                         copyTask.setFlatten(true);
                         copyTask.setTodir(nbmBuildDirFile);
                     } else {
-                        String path = session.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
+                        String path = super.artifacts.pathOf(art);
                         File f = new File(nbmBuildDirFile, path.replace('/', File.separatorChar));
                         copyTask.setTofile(f);
                     }
@@ -204,7 +204,7 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
                         }
                         ArtifactType npmFile = artifacts.getArtifactType(NbmFileArtifactHandler.NAME);
                         Artifact art = new DefaultArtifact(proj.getGroupId(), proj.getArtifactId(), null, npmFile.getExtension(), proj.getVersion(), npmFile);
-                        String path = session.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
+                        String path = artifacts.pathOf(art);
                         File f = new File(nbmBuildDirFile, path.replace('/', File.separatorChar));
                         copyTask.setTofile(f);
                     }

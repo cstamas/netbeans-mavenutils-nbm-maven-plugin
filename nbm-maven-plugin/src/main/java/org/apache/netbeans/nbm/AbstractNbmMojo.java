@@ -274,7 +274,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
                 // That's fine here, as all we need is to know if project is osgi or nbm module.
                 // the nbm file has to be in local repository though.
                 // SPLIT REPOSITORY SUPPORT: use APIs!
-                String path = session.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
+                String path = artifacts.pathOf(art);
                 File jar2 = new File(session.getRepositorySession().getLocalRepository().getBasedir(), path.replace("/", File.separator));
                 File manifest = new File(jar, "META-INF/MANIFEST.MF");
 
