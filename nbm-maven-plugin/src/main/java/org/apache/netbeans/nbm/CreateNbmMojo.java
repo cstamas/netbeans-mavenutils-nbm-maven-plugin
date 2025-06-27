@@ -36,13 +36,19 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
+import org.apache.maven.project.ProjectDependenciesResolver;
 import org.apache.maven.shared.filtering.MavenResourcesFiltering;
+import org.apache.netbeans.nbm.handlers.NbmFileArtifactHandler;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.types.Path;
 import org.apache.tools.ant.util.FileUtils;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.ArtifactType;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.repository.RemoteRepository;
 import org.netbeans.nbbuild.MakeNBM;
 import org.netbeans.nbbuild.MakeNBM.Blurb;
 import org.netbeans.nbbuild.MakeNBM.Signature;
@@ -179,8 +185,8 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy/MM/dd");
 
     @Inject
-    public CreateNbmMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts, MavenResourcesFiltering mavenResourcesFiltering) {
-        super(repositorySystem, mavenSession, mavenProjectHelper, artifacts, mavenResourcesFiltering);
+    public CreateNbmMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts, MavenResourcesFiltering mavenResourcesFiltering) {
+        super(repositorySystem, mavenSession, mavenProjectHelper, projectDependenciesResolver, artifacts, mavenResourcesFiltering);
     }
 
     @Override
@@ -280,18 +286,17 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
             getLog().warn("Module descriptor's distributionUrl field is deprecated, use plugin's configuration in pom.xml");
         }
         if (distribUrl != null) {
-            ArtifactRepository distRepository = CreateUpdateSiteMojo.getDeploymentRepository(distribUrl, layouts);
+            RemoteRepository distRepository = CreateUpdateSiteMojo.getDeploymentRepository(distribUrl);
             String dist = null;
             if (distRepository == null) {
                 if (!distribUrl.contains("::")) {
                     dist = distribUrl + (distribUrl.endsWith("/") ? "" : "/") + nbmFile.getName();
                 }
             } else {
-                Artifact art = artifactFactory.createArtifact(
-                        project.getGroupId(), project.getArtifactId(),
-                        project.getVersion(), null, "nbm-file");
-
-                dist = distRepository.getUrl() + (distRepository.getUrl().endsWith("/") ? "" : "/") + distRepository.pathOf(art);
+                MavenProject project = mavenSession.getCurrentProject();
+                ArtifactType nbmFileType = artifacts.getArtifactType(NbmFileArtifactHandler.NAME);
+                Artifact art = new DefaultArtifact(project.getGroupId(), project.getArtifactId(), null, nbmFileType.getExtension(), project.getVersion(), nbmFileType);
+                dist = distRepository.getUrl() + (distRepository.getUrl().endsWith("/") ? "" : "/") + mavenSession.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
 
             }
             nbmTask.setDistribution(dist);
@@ -333,12 +338,12 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
             organization = org.getName();
         }
         if (organization == null) {
-            List devs = mavenSession.getCurrentProject().getDevelopers();
-            if (devs.size() > 0) {
-                Iterator dvs = devs.iterator();
+            List<Developer> devs = mavenSession.getCurrentProject().getDevelopers();
+            if (!devs.isEmpty()) {
+                Iterator<Developer> dvs = devs.iterator();
                 String devsString = "";
                 while (dvs.hasNext()) {
-                    Developer d = (Developer) dvs.next();
+                    Developer d = dvs.next();
                     devsString = devsString + "," + d.getName() != null ? d.getName() : d.getId();
                 }
                 organization = devsString.substring(1);
@@ -353,7 +358,7 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
         }
         String year = Integer.toString(Calendar.getInstance().get(Calendar.YEAR));
         if (!year.equals(date)) {
-            date = date.length() == 0 ? year : date + "-" + year;
+            date = date.isEmpty() ? year : date + "-" + year;
         }
         return "Copyright " + organization + " " + date;
     }
@@ -361,11 +366,11 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
     private String createDefaultLicenseText() {
         String toRet = "License terms:\n";
 
-        List licenses = mavenSession.getCurrentProject().getLicenses();
-        if (licenses != null && licenses.size() > 0) {
-            Iterator lic = licenses.iterator();
+        List<License> licenses = mavenSession.getCurrentProject().getLicenses();
+        if (licenses != null && !licenses.isEmpty()) {
+            Iterator<License> lic = licenses.iterator();
             while (lic.hasNext()) {
-                License ll = (License) lic.next();
+                License ll = lic.next();
 
                 if (ll.getName() != null) {
                     toRet = toRet + ll.getName() + " - ";

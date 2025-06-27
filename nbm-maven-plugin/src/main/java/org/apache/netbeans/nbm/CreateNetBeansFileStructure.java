@@ -41,17 +41,16 @@ import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.repository.layout.DefaultRepositoryLayout;
+
+import org.apache.maven.RepositoryUtils;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProjectHelper;
+import org.apache.maven.project.ProjectDependenciesResolver;
 import org.apache.maven.shared.filtering.MavenFilteringException;
-import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.filtering.MavenResourcesExecution;
 import org.apache.maven.shared.filtering.MavenResourcesFiltering;
 import org.apache.netbeans.nbm.model.NbmResource;
@@ -66,6 +65,7 @@ import org.apache.tools.ant.types.Path;
 import org.apache.tools.ant.types.PatternSet;
 import org.apache.tools.ant.util.FileUtils;
 import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.artifact.Artifact;
 import org.netbeans.nbbuild.CreateModuleXML;
 import org.netbeans.nbbuild.MakeListOfNBM;
 import org.codehaus.plexus.util.ReaderFactory;
@@ -228,8 +228,8 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
     protected final MavenResourcesFiltering mavenResourcesFiltering;
 
     @Inject
-    public CreateNetBeansFileStructure(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts, MavenResourcesFiltering mavenResourcesFiltering) {
-        super(repositorySystem, mavenSession, mavenProjectHelper, artifacts);
+    public CreateNetBeansFileStructure(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts, MavenResourcesFiltering mavenResourcesFiltering) {
+        super(repositorySystem, mavenSession, mavenProjectHelper, projectDependenciesResolver, artifacts);
         this.mavenResourcesFiltering = mavenResourcesFiltering;
     }
 
@@ -314,8 +314,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
 
         if (module != null) {
             // copy libraries to the designated place..
-            @SuppressWarnings("unchecked")
-            List<Artifact> artifacts = mavenSession.getCurrentProject().getRuntimeArtifacts();
+            Collection<Artifact> artifacts = RepositoryUtils.toArtifacts(mavenSession.getCurrentProject().getRuntimeArtifacts());
             for (Artifact artifact : artifacts) {
                 File source = artifact.getFile();
 
@@ -548,7 +547,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
         return false;
     }
 
-    static void writeExternal(PrintWriter w, Artifact artifact) throws IOException {
+    void writeExternal(PrintWriter w, Artifact artifact) throws IOException {
         w.write("CRC:");
         File file = artifact.getFile();
         w.write(Long.toString(CreateClusterAppMojo.crcForFile(file).getValue()));
@@ -561,7 +560,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
         w.write(':');
         w.write(artifact.getVersion());
         w.write(':');
-        w.write(artifact.getType());
+        w.write(artifacts.getArtifactType(artifact).getId());
         if (artifact.getClassifier() != null) {
             w.write(':');
             w.write(artifact.getClassifier());
@@ -571,7 +570,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
         w.
                 write( /* M3: RepositorySystem.DEFAULT_REMOTE_REPO_URL + '/' */
                         "http://repo.maven.apache.org/maven2/");
-        w.write(new DefaultRepositoryLayout().pathOf(artifact));
+        w.write(mavenSession.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(artifact));
         w.write('\n');
         w.flush();
     }

@@ -51,6 +51,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
+import org.apache.maven.project.ProjectDependenciesResolver;
 import org.apache.maven.shared.dependency.analyzer.DefaultClassAnalyzer;
 import org.apache.maven.shared.dependency.analyzer.asm.ASMDependencyAnalyzer;
 import org.apache.netbeans.nbm.model.Dependency;
@@ -278,8 +279,8 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
     private String moduleType;
 
     @Inject
-    public NetBeansManifestUpdateMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts) {
-        super(repositorySystem, mavenSession, mavenProjectHelper, artifacts);
+    public NetBeansManifestUpdateMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
+        super(repositorySystem, mavenSession, mavenProjectHelper, projectDependenciesResolver, artifacts);
     }
 
     /**
@@ -371,7 +372,7 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
                 timestamp);
         String projectCNB = conditionallyAddAttribute(mainSection, "OpenIDE-Module", moduleName);
         String packagesValue;
-        if (publicPackages != null && publicPackages.size() > 0) {
+        if (publicPackages != null && !publicPackages.isEmpty()) {
             StringBuilder sb = new StringBuilder();
             for (String pub : publicPackages) {
                 if (pub == null) { //#MNBMODULE-237
@@ -418,13 +419,9 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
         }
         getLog().debug("module =" + module);
 
-        final String scope = includeRuntimeModuleLibraries ? Artifact.SCOPE_COMPILE_PLUS_RUNTIME : Artifact.SCOPE_COMPILE;
-        ProjectBuildingRequest prjbr = new DefaultProjectBuildingRequest(session.getProjectBuildingRequest());
-        prjbr.setProject(project);
-        DependencyNode treeroot = createDependencyTree(prjbr, dependencyGraphBuilder, scope);
+        DependencyNode treeroot = createDependencyTree(mavenSession.getCurrentProject(), includeRuntimeModuleLibraries);
         Map<Artifact, ExamineManifest> examinerCache = new HashMap<Artifact, ExamineManifest>();
-        @SuppressWarnings("unchecked")
-        List<Artifact> libArtifacts = getLibraryArtifacts(treeroot, module, mavenSession.getCurrentProject().getRuntimeArtifacts(),
+        List<Artifact> libArtifacts = getLibraryArtifacts(treeroot, module, RepositoryUtils.toArtifacts(mavenSession.getCurrentProject().getRuntimeArtifacts()),
                 examinerCache, getLog(), useOSGiDependencies);
         List<ModuleWrapper> moduleArtifacts = getModuleDependencyArtifacts(treeroot, module, moduleDependencies,
                 mavenSession.getCurrentProject(), examinerCache,
@@ -617,7 +614,7 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
 
         Set<String> own = projectModuleOwnClasses(mavenSession.getCurrentProject(), libArtifacts);
         deps.removeAll(own);
-        CollectModuleLibrariesNodeVisitor visitor = new CollectModuleLibrariesNodeVisitor(
+        CollectModuleLibrariesNodeVisitor visitor = new CollectModuleLibrariesNodeVisitor(artifacts,
                 RepositoryUtils.toArtifacts(mavenSession.getCurrentProject().getRuntimeArtifacts()), examinerCache, getLog(), treeroot, useOSGiDependencies);
         treeroot.accept(visitor);
         Map<String, List<Artifact>> modules = visitor.getDeclaredArtifacts();

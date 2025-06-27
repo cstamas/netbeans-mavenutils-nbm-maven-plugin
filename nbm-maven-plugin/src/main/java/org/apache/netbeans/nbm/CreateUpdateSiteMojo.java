@@ -19,13 +19,15 @@ package org.apache.netbeans.nbm;
  * under the License.
  */
 import java.io.File;
-import java.util.Iterator;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.inject.Inject;
+
+import org.apache.maven.RepositoryUtils;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -35,12 +37,20 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
+import org.apache.maven.project.ProjectDependenciesResolver;
+import org.apache.netbeans.nbm.handlers.NbmFileArtifactHandler;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.taskdefs.Copy;
 import org.apache.tools.ant.types.FileSet;
 import org.codehaus.plexus.archiver.gzip.GZipArchiver;
 import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.ArtifactType;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.repository.LocalRepository;
+import org.eclipse.aether.repository.LocalRepositoryManager;
+import org.eclipse.aether.repository.RemoteRepository;
 import org.netbeans.nbbuild.MakeUpdateDesc;
 
 /**
@@ -106,8 +116,8 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
     private List<String> updateSiteIncludes;
 
     @Inject
-    public CreateUpdateSiteMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts) {
-        super(repositorySystem, mavenSession, mavenProjectHelper, artifacts);
+    public CreateUpdateSiteMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
+        super(repositorySystem, mavenSession, mavenProjectHelper, projectDependenciesResolver, artifacts);
     }
 
     @Override
@@ -122,7 +132,7 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
         if ("auto".equals(distBase)) {
             distBase = null;
         }
-        ArtifactRepository distRepository = getDeploymentRepository(distBase, layouts);
+        RemoteRepository distRepository = getDeploymentRepository(distBase);
         String oldDistBase = null;
         if (distRepository != null) {
             isRepository = true;
@@ -133,19 +143,17 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
         }
 
         if ("nbm-application".equals(mavenSession.getCurrentProject().getPackaging())) {
-            @SuppressWarnings("unchecked")
-            Set<Artifact> artifacts = mavenSession.getCurrentProject().getArtifacts();
+            Collection<Artifact> artifacts = RepositoryUtils.toArtifacts(mavenSession.getCurrentProject().getArtifacts());
             for (Artifact art : artifacts) {
                 if (!matchesIncludes(art)) {
                     continue;
                 }
-                ArtifactResult res
-                        = turnJarToNbmFile(art, artifactFactory, artifactResolver, project, session.getLocalRepository());
+                ArtifactResult res = turnJarToNbmFile(art, mavenSession.getCurrentProject());
                 if (res.hasConvertedArtifact()) {
                     art = res.getConvertedArtifact();
                 }
 
-                if (art.getType().equals("nbm-file")) {
+                if (super.artifacts.getArtifactType(art).getId().equals("nbm-file")) {
                     Copy copyTask = (Copy) antProject.createTask("copy");
                     copyTask.setOverwrite(true);
                     copyTask.setFile(art.getFile());
@@ -153,7 +161,7 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
                         copyTask.setFlatten(true);
                         copyTask.setTodir(nbmBuildDirFile);
                     } else {
-                        String path = distRepository.pathOf(art);
+                        String path = mavenSession.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
                         File f = new File(nbmBuildDirFile, path.replace('/', File.separatorChar));
                         copyTask.setTofile(f);
                     }
@@ -170,13 +178,11 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
             }
             getLog().info("Created NetBeans module cluster(s) at " + nbmBuildDirFile.getAbsoluteFile());
 
-        } else if (mavenSession.getAllProjects().size() > 0) {
+        } else if (!mavenSession.getAllProjects().isEmpty()) {
 
-            Iterator it = mavenSession.getAllProjects().iterator();
-            while (it.hasNext()) {
-                MavenProject proj = (MavenProject) it.next();
+            for (MavenProject proj : mavenSession.getAllProjects()) {
                 File projOutputDirectory = new File(proj.getBuild().getDirectory());
-                if (projOutputDirectory != null && projOutputDirectory.exists()) {
+                if (projOutputDirectory.exists()) {
                     Copy copyTask = (Copy) antProject.createTask("copy");
                     if (!isRepository) {
                         FileSet fs = new FileSet();
@@ -201,11 +207,9 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
                         if (!has) {
                             continue;
                         }
-                        Artifact art
-                                = artifactFactory.createArtifact(proj.getGroupId(), proj.getArtifactId(), proj.
-                                        getVersion(),
-                                        null, "nbm-file");
-                        String path = distRepository.pathOf(art);
+                        ArtifactType npmFile = artifacts.getArtifactType(NbmFileArtifactHandler.NAME);
+                        Artifact art = new DefaultArtifact(proj.getGroupId(), proj.getArtifactId(), null, npmFile.getExtension(), proj.getVersion(), npmFile);
+                        String path = mavenSession.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
                         File f = new File(nbmBuildDirFile, path.replace('/', File.separatorChar));
                         copyTask.setTofile(f);
                     }
@@ -258,10 +262,10 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
 
     private static final Pattern ALT_REPO_SYNTAX_PATTERN = Pattern.compile("(.+)::(.+)::(.+)");
 
-    static ArtifactRepository getDeploymentRepository(String distBase, Map<String, ArtifactRepositoryLayout> layouts)
+    static RemoteRepository getDeploymentRepository(String distBase)
             throws MojoExecutionException, MojoFailureException {
 
-        ArtifactRepository repo = null;
+        RemoteRepository repo = null;
 
         if (distBase != null) {
 
@@ -280,12 +284,7 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
                 String layout = matcher.group(2).trim();
                 String url = matcher.group(3).trim();
 
-                ArtifactRepositoryLayout repoLayout = layouts.get(layout);
-                if (repoLayout == null) {
-                    throw new MojoExecutionException("Cannot find repository layout: " + layout);
-                }
-
-                repo = new DefaultArtifactRepository(id, url, repoLayout);
+                repo = new RemoteRepository.Builder(id, "default", url).build();
             }
         }
         return repo;

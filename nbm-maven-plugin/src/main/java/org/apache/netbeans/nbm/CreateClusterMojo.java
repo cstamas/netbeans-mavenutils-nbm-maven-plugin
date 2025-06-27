@@ -30,6 +30,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
+import org.apache.maven.project.ProjectDependenciesResolver;
 import org.apache.netbeans.nbm.utils.ExamineManifest;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
@@ -72,8 +73,8 @@ public final class CreateClusterMojo extends AbstractNbmMojo {
     private File clusterBuildDir;
 
     @Inject
-    public CreateClusterMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts) {
-        super(repositorySystem, mavenSession, mavenProjectHelper, artifacts);
+    public CreateClusterMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
+        super(repositorySystem, mavenSession, mavenProjectHelper, projectDependenciesResolver, artifacts);
     }
 
     @Override
@@ -155,9 +156,9 @@ public final class CreateClusterMojo extends AbstractNbmMojo {
             }
             //in 6.1 the rebuilt modules will be cached if the timestamp is not touched.
             File[] files = clusterBuildDir.listFiles();
-            for (int i = 0; i < files.length; i++) {
-                if (files[i].isDirectory()) {
-                    File stamp = new File(files[i], ".lastModified");
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    File stamp = new File(file, ".lastModified");
                     if (!stamp.exists()) {
                         try {
                             stamp.createNewFile();

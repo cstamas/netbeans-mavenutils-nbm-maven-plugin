@@ -29,7 +29,6 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.netbeans.nbm.utils.ExamineManifest;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.graph.DependencyNode;
-import org.eclipse.aether.graph.DependencyVisitor;
 import org.eclipse.aether.util.artifact.ArtifactIdUtils;
 
 /**
@@ -38,37 +37,36 @@ import org.eclipse.aether.util.artifact.ArtifactIdUtils;
  *
  * @author Milos Kleint
  */
-public class CollectLibrariesNodeVisitor implements DependencyVisitor {
+public class CollectLibrariesNodeVisitor extends DependencyVisitorSupport {
 
     /**
      * The collected list of nodes.
      */
     private final List<Artifact> nodes;
 
-    private Map<String, Artifact> artifacts;
+    private final Map<String, Artifact> artifacts;
 
-    private Map<Artifact, ExamineManifest> examinerCache;
+    private final Map<Artifact, ExamineManifest> examinerCache;
 
-    private List<String> explicitLibs;
+    private final List<String> explicitLibs;
 
-    private final Log log;
+    private final DependencyNode root;
 
-    private MojoExecutionException throwable;
+    private final Set<String> duplicates;
 
-    private DependencyNode root;
+    private final Set<String> conflicts;
 
-    private Set<String> duplicates;
-
-    private Set<String> conflicts;
-
-    private Set<String> includes;
+    private final Set<String> includes;
 
     private final boolean useOsgiDependencies;
+
+    private MojoExecutionException throwable;
 
     /**
      * Creates a dependency node visitor that collects visited nodes for further
      * processing.
      *
+     * @param helper The Artifacts helper.
      * @param explicitLibraries list of explicit libraries
      * @param runtimeArtifacts list of runtime artifacts
      * @param examinerCache cache of netbeans manifest for artifacts
@@ -76,22 +74,22 @@ public class CollectLibrariesNodeVisitor implements DependencyVisitor {
      * @param root dependency to start collect with
      * @param useOsgiDependencies whether to allow osgi dependencies or not
      */
-    public CollectLibrariesNodeVisitor(List<String> explicitLibraries,
-            List<Artifact> runtimeArtifacts, Map<Artifact, ExamineManifest> examinerCache,
-            Log log, DependencyNode root, boolean useOsgiDependencies) {
-        nodes = new ArrayList<>();
-        artifacts = new HashMap<>();
+    public CollectLibrariesNodeVisitor(Artifacts helper, List<String> explicitLibraries,
+                                       List<Artifact> runtimeArtifacts, Map<Artifact, ExamineManifest> examinerCache,
+                                       Log log, DependencyNode root, boolean useOsgiDependencies) {
+        super(log, helper);
+        this.nodes = new ArrayList<>();
+        this.artifacts = new HashMap<>();
         for (Artifact a : runtimeArtifacts) {
             artifacts.put(ArtifactIdUtils.toVersionlessId(a), a);
         }
         this.examinerCache = examinerCache;
         this.explicitLibs = explicitLibraries;
-        this.log = log;
         this.root = root;
         this.useOsgiDependencies = useOsgiDependencies;
-        duplicates = new HashSet<String>();
-        conflicts = new HashSet<String>();
-        includes = new HashSet<String>();
+        this.duplicates = new HashSet<>();
+        this.conflicts = new HashSet<>();
+        this.includes = new HashSet<>();
     }
 
     /**
@@ -121,7 +119,7 @@ public class CollectLibrariesNodeVisitor implements DependencyVisitor {
                 depExaminator.checkFile();
                 examinerCache.put(artifact, depExaminator);
             }
-            if (AbstractNbmMojo.matchesLibrary(artifact, node.getDependency().getScope(), explicitLibs, depExaminator, log, useOsgiDependencies)) {
+            if (matchesLibrary(artifact, node.getDependency().getScope(), explicitLibs, depExaminator, useOsgiDependencies)) {
                 if (depExaminator.isNetBeansModule()) {
                     log.warn("You are using a NetBeans Module as a Library (classpath extension): " + ArtifactIdUtils.toId(artifact));
                 }

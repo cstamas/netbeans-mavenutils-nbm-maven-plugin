@@ -30,7 +30,6 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.netbeans.nbm.utils.ExamineManifest;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.graph.DependencyNode;
-import org.eclipse.aether.graph.DependencyVisitor;
 import org.eclipse.aether.util.artifact.ArtifactIdUtils;
 
 /**
@@ -39,8 +38,7 @@ import org.eclipse.aether.util.artifact.ArtifactIdUtils;
  *
  * @author Milos Kleint
  */
-public class CollectModuleLibrariesNodeVisitor
-        implements DependencyVisitor {
+public class CollectModuleLibrariesNodeVisitor extends DependencyVisitorSupport {
 
     /**
      * The collected list of nodes.
@@ -49,20 +47,19 @@ public class CollectModuleLibrariesNodeVisitor
 
     private final Map<String, List<Artifact>> transitiveNodes;
 
-    private Map<String, Artifact> artifacts;
+    private final Map<String, Artifact> artifacts;
 
-    private Map<Artifact, ExamineManifest> examinerCache;
+    private final Map<Artifact, ExamineManifest> examinerCache;
 
-    private final Log log;
+    private final DependencyNode root;
 
-    private MojoExecutionException throwable;
+    private final Stack<String> currentModule = new Stack<String>();
 
-    private DependencyNode root;
-
-    private Stack<String> currentModule = new Stack<String>();
     private static final String LIB_ID = "!@#$%^&ROOT";
 
     private final boolean useOSGiDependencies;
+
+    private MojoExecutionException throwable;
 
     /**
      * Creates a dependency node visitor that collects visited nodes for further
@@ -74,17 +71,17 @@ public class CollectModuleLibrariesNodeVisitor
      * @param root dependency to start collect with
      * @param useOSGiDependencies whether to allow osgi dependencies or not
      */
-    public CollectModuleLibrariesNodeVisitor(
+    public CollectModuleLibrariesNodeVisitor(Artifacts helper,
             Collection<Artifact> runtimeArtifacts, Map<Artifact, ExamineManifest> examinerCache,
             Log log, DependencyNode root, boolean useOSGiDependencies) {
-        directNodes = new HashMap<String, List<Artifact>>();
-        transitiveNodes = new HashMap<String, List<Artifact>>();
-        artifacts = new HashMap<String, Artifact>();
+        super(log, helper);
+        directNodes = new HashMap<>();
+        transitiveNodes = new HashMap<>();
+        artifacts = new HashMap<>();
         for (Artifact a : runtimeArtifacts) {
             artifacts.put(ArtifactIdUtils.toVersionlessId(a), a);
         }
         this.examinerCache = examinerCache;
-        this.log = log;
         this.root = root;
         this.useOSGiDependencies = useOSGiDependencies;
     }
@@ -127,11 +124,10 @@ public class CollectModuleLibrariesNodeVisitor
                 }
                 return true;
             }
-            if (currentModule.size() > 0) {
+            if (!currentModule.isEmpty()) {
                 ////MNBMODULE-95 we are only interested in the module owned libraries
                 if (!currentModule.peek().startsWith(LIB_ID)
-                        && AbstractNbmMojo.
-                                matchesLibrary(artifact, node.getDependency().getScope(), Collections.<String>emptyList(), depExaminator, log,
+                        && matchesLibrary(artifact, node.getDependency().getScope(), Collections.emptyList(), depExaminator,
                                         useOSGiDependencies)) {
                     if (currentModule.size() == 1) {
                         directNodes.get(currentModule.peek()).add(artifact);

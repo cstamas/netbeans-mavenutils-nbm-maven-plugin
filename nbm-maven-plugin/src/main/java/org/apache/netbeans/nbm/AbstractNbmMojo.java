@@ -37,9 +37,13 @@ import org.apache.maven.archiver.MavenArchiver;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.project.DefaultDependencyResolutionRequest;
+import org.apache.maven.project.DependencyResolutionException;
+import org.apache.maven.project.DependencyResolutionResult;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
+import org.apache.maven.project.ProjectDependenciesResolver;
+import org.apache.netbeans.nbm.handlers.NbmFileArtifactHandler;
 import org.apache.netbeans.nbm.model.Dependency;
 import org.apache.netbeans.nbm.model.NetBeansModule;
 import org.apache.netbeans.nbm.model.io.xpp3.NetBeansModuleXpp3Reader;
@@ -48,47 +52,27 @@ import org.apache.netbeans.nbm.utils.ExamineManifest;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.graph.DependencyNode;
-import org.eclipse.aether.util.artifact.ArtifactIdUtils;
+import org.eclipse.aether.resolution.ArtifactRequest;
+import org.eclipse.aether.resolution.ArtifactResolutionException;
 import org.eclipse.aether.util.artifact.JavaScopes;
+import org.eclipse.aether.util.filter.ScopeDependencyFilter;
 
 public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
 
     protected final RepositorySystem repositorySystem;
     protected final MavenSession mavenSession;
     protected final MavenProjectHelper mavenProjectHelper;
+    protected final ProjectDependenciesResolver projectDependenciesResolver;
     protected final Artifacts artifacts;
 
-    public AbstractNbmMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, Artifacts artifacts) {
+    public AbstractNbmMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
         this.repositorySystem = repositorySystem;
         this.mavenSession = mavenSession;
         this.mavenProjectHelper = mavenProjectHelper;
+        this.projectDependenciesResolver = projectDependenciesResolver;
         this.artifacts = artifacts;
-    }
-
-    protected boolean matchesLibrary(Artifact artifact, String scope, List<String> libraries, ExamineManifest depExaminator, Log log, boolean useOsgiDependencies) {
-        String artId = artifact.getArtifactId();
-        String grId = artifact.getGroupId();
-        String id = grId + ":" + artId;
-        boolean explicit = libraries.remove(id);
-        if (explicit) {
-            log.debug(id + " included as module library, explicitly declared in module descriptor.");
-            return explicit;
-        }
-        if (JavaScopes.PROVIDED.equals(scope) || JavaScopes.SYSTEM.equals(scope)) {
-            log.debug(id + " omitted as module library, has scope 'provided/system'");
-            return false;
-        }
-        if ("nbm".equals(artifacts.getArtifactType(artifact).getId())) {
-            return false;
-        }
-        if (depExaminator.isNetBeansModule() || (useOsgiDependencies && depExaminator.isOsgiBundle())) {
-            //TODO I can see how someone might want to include an osgi bundle as library, not dependency.
-            // I guess it won't matter much in 6.9+, in older versions it could be a problem.
-            return false;
-        }
-        log.debug(id + " included as module library, squeezed through all the filters.");
-        return true;
     }
 
     protected Dependency resolveNetBeansDependency(Artifact artifact, List<Dependency> deps, ExamineManifest manifest, Log log) {
@@ -134,8 +118,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         }
         try (Reader r = new FileReader(descriptor)) {
             NetBeansModuleXpp3Reader reader = new NetBeansModuleXpp3Reader();
-            NetBeansModule module = reader.read(r);
-            return module;
+            return reader.read(r);
         } catch (IOException | XmlPullParserException exc) {
             throw new MojoExecutionException("Error while reading module descriptor '" + descriptor + "'.", exc);
         }
@@ -145,23 +128,21 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         if (log) {
             getLog().info("No Module Descriptor defined, trying to fallback to generated values:");
         }
-        NetBeansModule module = new NetBeansModule();
-        return module;
+        return new NetBeansModule();
     }
 
     protected List<Artifact> getLibraryArtifacts(DependencyNode treeRoot, NetBeansModule module,
-                                              List<Artifact> runtimeArtifacts,
+                                              Collection<Artifact> runtimeArtifacts,
                                               Map<Artifact, ExamineManifest> examinerCache, Log log,
-                                              boolean useOsgiDependencies)
-            throws MojoExecutionException {
+                                              boolean useOsgiDependencies) throws MojoExecutionException {
         List<Artifact> include = new ArrayList<>();
         if (module != null) {
             List<String> librList = new ArrayList<>();
             if (module.getLibraries() != null) {
                 librList.addAll(module.getLibraries());
             }
-            CollectLibrariesNodeVisitor visitor = new CollectLibrariesNodeVisitor(librList,
-                    runtimeArtifacts, examinerCache, log,
+            CollectLibrariesNodeVisitor visitor = new CollectLibrariesNodeVisitor(artifacts, librList,
+                    new ArrayList<>(runtimeArtifacts), examinerCache, log,
                     treeRoot, useOsgiDependencies);
             treeRoot.accept(visitor);
             include.addAll(visitor.getArtifacts());
@@ -258,37 +239,21 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         boolean osgi = false;
     }
 
-    protected DependencyNode createDependencyTree(ProjectBuildingRequest project, DependencyGraphBuilder dependencyGraphBuilder,
-            String scope)
-            throws MojoExecutionException {
-        ArtifactFilter artifactFilter = createResolvingArtifactFilter(scope);
+    protected DependencyNode createDependencyTree(MavenProject project, boolean includeRuntime) throws MojoExecutionException {
+        DefaultDependencyResolutionRequest request = new DefaultDependencyResolutionRequest(project, mavenSession.getRepositorySession());
+        if (includeRuntime) {
+            request.setResolutionFilter(new ScopeDependencyFilter("test"));
+        } else {
+            request.setResolutionFilter(new ScopeDependencyFilter("runtime", "test"));
+        }
+
         try {
-            return dependencyGraphBuilder.buildDependencyGraph(project, artifactFilter);
-        } catch (DependencyGraphBuilderException exception) {
+            DependencyResolutionResult result = projectDependenciesResolver.resolve(request);
+            return result.getDependencyGraph();
+        } catch (DependencyResolutionException exception) {
             throw new MojoExecutionException("Cannot build project dependency tree", exception);
         }
 
-    }
-
-    //copied from dependency:tree mojo
-    /**
-     * Gets the artifact filter to use when resolving the dependency tree.
-     *
-     * @return the artifact filter
-     */
-    private ArtifactFilter createResolvingArtifactFilter(String scope) {
-        ArtifactFilter filter;
-
-        // filter scope
-        if (scope != null) {
-            getLog().debug("+ Resolving dependency tree for scope '" + scope + "'");
-
-            filter = new ScopeArtifactFilter(scope);
-        } else {
-            filter = null;
-        }
-
-        return filter;
     }
 
     protected final ArtifactResult turnJarToNbmFile(Artifact art, MavenProject project)
@@ -305,8 +270,9 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
                 // the build via WorkspaceReader.
                 // That's fine here, as all we need is to know if project is osgi or nbm module.
                 // the nbm file has to be in local repository though.
-                String path = localRepository.pathOf(art);
-                File jar2 = new File(localRepository.getBasedir(), path.replace("/", File.separator));
+                // SPLIT REPOSITORY SUPPORT: use APIs!
+                String path = mavenSession.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(art);
+                File jar2 = new File(mavenSession.getRepositorySession().getLocalRepository().getBasedir(), path.replace("/", File.separator));
                 File manifest = new File(jar, "META-INF/MANIFEST.MF");
 
                 if (!jar2.isFile() || !manifest.isFile()) {
@@ -319,25 +285,15 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
             }
             mnf.checkFile();
             if (mnf.isNetBeansModule()) {
-                Artifact nbmArt = artifactFactory.createDependencyArtifact(
-                        art.getGroupId(),
-                        art.getArtifactId(),
-                        art.getVersionRange(),
-                        "nbm-file",
-                        art.getClassifier(),
-                        art.getScope());
+                Artifact nbmArt = new DefaultArtifact(art.getGroupId(), art.getArtifactId(), art.getClassifier(), art.getExtension(), art.getVersion(), null, artifacts.getArtifactType(NbmFileArtifactHandler.NAME));
                 try {
-                    artifactResolver.resolve(nbmArt, project.getRemoteArtifactRepositories(), localRepository);
+                    ArtifactRequest request = new ArtifactRequest(nbmArt, project.getRemoteProjectRepositories(), "nbm");
+                    org.eclipse.aether.resolution.ArtifactResult result = repositorySystem.resolveArtifact(mavenSession.getRepositorySession(), request);
+                    nbmArt = result.getArtifact();
                 } catch (ArtifactResolutionException ex) {
-                    //shall be check before actually resolving from repos?
-                    checkReactor(art, nbmArt);
-                    if (!nbmArt.isResolved()) {
-                        throw new MojoExecutionException("Failed to retrieve the nbm file from repository", ex);
-                    }
-                } catch (ArtifactNotFoundException ex) {
-                    //shall be check before actually resolving from repos?
-                    checkReactor(art, nbmArt);
-                    if (!nbmArt.isResolved()) {
+                    //shall we check before actually resolving from repos?
+                    nbmArt = checkReactor(art, nbmArt);
+                    if (nbmArt.getFile() == null) {
                         throw new MojoExecutionException("Failed to retrieve the nbm file from repository", ex);
                     }
                 }
