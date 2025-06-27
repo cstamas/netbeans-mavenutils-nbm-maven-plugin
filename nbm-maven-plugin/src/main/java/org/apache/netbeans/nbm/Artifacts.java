@@ -21,10 +21,12 @@ package org.apache.netbeans.nbm;
 
 import org.apache.maven.RepositoryUtils;
 import org.apache.maven.artifact.handler.manager.ArtifactHandlerManager;
+import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.ArtifactProperties;
 import org.eclipse.aether.artifact.ArtifactType;
 import org.eclipse.aether.artifact.ArtifactTypeRegistry;
+import org.eclipse.aether.repository.RemoteRepository;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -66,6 +68,16 @@ public final class Artifacts {
      * TODO: reconsider what to do here
      * Copied from resolver just to make things move: BUT USE OF THIS METHOD AND WHOLE APPROACH IS QUESTIONABLE.
      * After refactoring this single method will need to be (ideally) removed, or, replaced somehow.
+     * <p>
+     * Story time: long, long time ago, the "local path" and "remote path" (relative) was same, but this is not true
+     * anymore (in some cases). Hence, for local paths, recommended method is {@link RepositorySystemSession#getLocalRepositoryManager()}
+     * and {@link org.eclipse.aether.repository.LocalRepositoryManager#getPathForLocalArtifact(Artifact)} (local as "installed").
+     * or {@link org.eclipse.aether.repository.LocalRepositoryManager#getPathForRemoteArtifact(Artifact, RemoteRepository, String)}
+     * but then remote repo (origin) is needed.
+     * To get remote path, one need {@link org.eclipse.aether.spi.connector.layout.RepositoryLayout#getLocation(Artifact, boolean)}
+     * instead, but this one is tricky.
+     *
+     * Ideally, one should not need the "path" of repo, just GAV and let resolver resolve it.
      */
     public String pathOf(Artifact artifact) {
         requireNonNull(artifact);
