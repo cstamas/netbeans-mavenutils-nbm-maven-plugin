@@ -184,8 +184,12 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         }
         List<ModuleWrapper> include = new ArrayList<ModuleWrapper>();
 
+        // we get compile DIRECT dependencies only (to not have to discard below transitive deps)
         Set<String> compileScopes = new HashSet<>(Arrays.asList(JavaScopes.COMPILE, JavaScopes.PROVIDED, JavaScopes.SYSTEM));
-        Collection<Artifact> artifacts= RepositoryUtils.toArtifacts(project.getDependencyArtifacts().stream().filter(a -> a.getArtifactHandler().isAddedToClasspath()).filter(a -> compileScopes.contains(a.getScope())).collect(Collectors.toList()));
+        Collection<Artifact> artifacts= RepositoryUtils.toArtifacts(project.getDependencyArtifacts().stream()
+                .filter(a -> a.getArtifactHandler().isAddedToClasspath())
+                .filter(a -> compileScopes.contains(a.getScope()))
+                .collect(Collectors.toList()));
         for (Artifact artifact : artifacts) {
             if (libraryArtifacts.contains(artifact)) {
                 continue;
