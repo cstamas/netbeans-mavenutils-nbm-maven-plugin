@@ -41,13 +41,16 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Pack200;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
@@ -63,6 +66,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.project.ProjectDependenciesResolver;
 import org.apache.netbeans.nbm.handlers.NbmFileArtifactHandler;
@@ -511,7 +515,7 @@ public final class CreateClusterAppMojo extends AbstractNbmMojo {
             clusterModules.clear();
 
             //now assign the cluster to bundles based on dependencies..
-            assignClustersToBundles(bundles, wrappedBundleCNBs, clusterDependencies, cluster2depClusters, getLog());
+            assignClustersToBundles(mavenSession.getCurrentProject(), bundles, wrappedBundleCNBs, clusterDependencies, cluster2depClusters, getLog());
 
             for (BundleTuple ent : bundles) {
                 Artifact art = ent.artifact;
@@ -890,9 +894,11 @@ public final class CreateClusterAppMojo extends AbstractNbmMojo {
     // - 2 or more modules from unrelated clusters we cannot easily decide,
     //   most likely should be in common denominator cluster but our cluster2depClusters map is not transitive,
     //   only lists direct dependencies
-    static void assignClustersToBundles(List<BundleTuple> bundles, Set<String> wrappedBundleCNBs,
-            Map<String, Set<String>> clusterDependencies,
-            Map<String, Set<String>> cluster2depClusters, Log log) {
+    static void assignClustersToBundles(MavenProject mavenProject, List<BundleTuple> bundles, Set<String> wrappedBundleCNBs,
+                                        Map<String, Set<String>> clusterDependencies,
+                                        Map<String, Set<String>> cluster2depClusters, Log log) {
+        Collection<Artifact> directDeps = mavenProject != null ? RepositoryUtils.toArtifacts(mavenProject.getDependencyArtifacts()) : bundles.stream().map(b -> b.artifact).filter(Objects::nonNull).collect(Collectors.toSet());
+        Predicate<Artifact> isTransitive = a -> !directDeps.contains(a);
         List<BundleTuple> toProcess = new ArrayList<>();
         List<BundleTuple> known = new ArrayList<>();
         for (Iterator<BundleTuple> it = bundles.iterator(); it.hasNext();) {
@@ -902,7 +908,7 @@ public final class CreateClusterAppMojo extends AbstractNbmMojo {
             String spec = ex.getModule();
             //null check for tests
             //have a way to force inclusion of osgi items. Direct dependency is never wrapped by modules.
-            if (art != null && art.getDependencyTrail().size() > 2 && wrappedBundleCNBs.contains(spec)) {
+            if (art != null && isTransitive.test(art) && wrappedBundleCNBs.contains(spec)) {
                 // we already have this one as a wrapped module.
                 log.debug("Not including bundle " + ArtifactIdUtils.toVersionlessId(art)
                         + ". It is already included in a NetBeans module");

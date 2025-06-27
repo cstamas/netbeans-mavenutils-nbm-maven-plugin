@@ -61,4 +61,25 @@ public final class Artifacts {
         requireNonNull(artifact);
         return getArtifactType(artifact.getProperty(ArtifactProperties.TYPE, artifact.getExtension()));
     }
+
+    /**
+     * Copy from resolver just to make things move: BUT USE OF THIS METHOD AND WHOLE APPROACH IS WRONG.
+     * After refactoring this single method will need to be (ideally) removed, or, replaced somehow.
+     */
+    public String pathOf(Artifact artifact) {
+        requireNonNull(artifact);
+        StringBuilder path = new StringBuilder(128);
+        path.append(artifact.getGroupId().replace('.', '/')).append('/');
+        path.append(artifact.getArtifactId()).append('/');
+        path.append(artifact.getBaseVersion()).append('/');
+        path.append(artifact.getArtifactId()).append('-');
+        path.append(artifact.getVersion());
+        if (!artifact.getClassifier().isEmpty()) {
+            path.append('-').append(artifact.getClassifier());
+        }
+        if (!artifact.getExtension().isEmpty()) {
+            path.append('.').append(artifact.getExtension());
+        }
+        return path.toString();
+    }
 }

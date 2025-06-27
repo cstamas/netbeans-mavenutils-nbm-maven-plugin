@@ -18,17 +18,13 @@ package org.apache.netbeans.nbm;
  * specific language governing permissions and limitations
  * under the License.
  */
-import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Collections;
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.factory.ArtifactFactory;
-import org.apache.maven.artifact.repository.ArtifactRepository;
-import org.apache.maven.artifact.repository.DefaultArtifactRepository;
-import org.apache.maven.artifact.repository.layout.DefaultRepositoryLayout;
-import org.apache.maven.artifact.resolver.ArtifactResolver;
+
+import org.apache.maven.artifact.handler.manager.DefaultArtifactHandlerManager;
 import org.apache.maven.plugin.testing.AbstractMojoTestCase;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.DefaultArtifact;
 
 public class CreateNetBeansFileStructureTest extends AbstractMojoTestCase {
 
@@ -37,13 +33,9 @@ public class CreateNetBeansFileStructureTest extends AbstractMojoTestCase {
         String version = "4.13.2";  // TODO must be in local repo downloaded by other means -> fix this test!
 
         String localRepository = System.getProperty("localRepository");
-        ArtifactFactory artifactFactory = (ArtifactFactory) lookup(ArtifactFactory.class.getName());
-        ArtifactResolver artifactResolver = (ArtifactResolver) lookup(ArtifactResolver.class.getName());
-        Artifact a = artifactFactory.createBuildArtifact("junit", "junit", version, "jar");
-//        DefaultArtifactRepository central = new DefaultArtifactRepository( "central", "http://repo.maven.apache.org/maven2", new DefaultRepositoryLayout() );
-        artifactResolver.resolve(a, Collections.<ArtifactRepository>emptyList(), new DefaultArtifactRepository("local", new File(localRepository).toURI().toString(), new DefaultRepositoryLayout()));
+        Artifact a = new DefaultArtifact("junit", "junit", "jar", version);
         StringWriter w = new StringWriter();
-        CreateNetBeansFileStructure.writeExternal(new PrintWriter(w), a);
+        CreateNetBeansFileStructure.writeExternal(new Artifacts(new DefaultArtifactHandlerManager()), new PrintWriter(w), a);
         assertEquals(
                 "CRC:1161534166\n"
                 + "SIZE:384581\n"

@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -332,8 +333,8 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
 
                             String name = target.getName();
                             getLog().info("Using *.external replacement for " + name);
-                            try (PrintWriter external = new PrintWriter(new File(targetDir, name + ".external"), "UTF-8")) {
-                                writeExternal(external, artifact);
+                            try (PrintWriter external = new PrintWriter(new File(targetDir, name + ".external"), StandardCharsets.UTF_8)) {
+                                writeExternal(super.artifacts, external, artifact);
                             }
                         }
                     } catch (IOException ex) {
@@ -547,7 +548,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
         return false;
     }
 
-    void writeExternal(PrintWriter w, Artifact artifact) throws IOException {
+    static void writeExternal(Artifacts artifacts, PrintWriter w, Artifact artifact) throws IOException {
         w.write("CRC:");
         File file = artifact.getFile();
         w.write(Long.toString(CreateClusterAppMojo.crcForFile(file).getValue()));
@@ -570,7 +571,7 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
         w.
                 write( /* M3: RepositorySystem.DEFAULT_REMOTE_REPO_URL + '/' */
                         "http://repo.maven.apache.org/maven2/");
-        w.write(mavenSession.getRepositorySession().getLocalRepositoryManager().getPathForLocalArtifact(artifact));
+        w.write(artifacts.pathOf(artifact));
         w.write('\n');
         w.flush();
     }

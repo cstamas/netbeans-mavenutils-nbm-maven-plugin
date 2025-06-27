@@ -75,7 +75,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         this.artifacts = artifacts;
     }
 
-    protected Dependency resolveNetBeansDependency(Artifact artifact, List<Dependency> deps, ExamineManifest manifest, Log log) {
+    static Dependency resolveNetBeansDependency(Artifacts artifacts, Artifact artifact, List<Dependency> deps, ExamineManifest manifest, Log log) {
         String artId = artifact.getArtifactId();
         String grId = artifact.getGroupId();
         String id = grId + ":" + artId;
@@ -131,7 +131,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
         return new NetBeansModule();
     }
 
-    protected List<Artifact> getLibraryArtifacts(DependencyNode treeRoot, NetBeansModule module,
+    static List<Artifact> getLibraryArtifacts(Artifacts artifacts, DependencyNode treeRoot, NetBeansModule module,
                                               Collection<Artifact> runtimeArtifacts,
                                               Map<Artifact, ExamineManifest> examinerCache, Log log,
                                               boolean useOsgiDependencies) throws MojoExecutionException {
@@ -194,7 +194,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
                 depExaminator.checkFile();
                 examinerCache.put(artifact, depExaminator);
             }
-            Dependency dep = resolveNetBeansDependency(artifact, deps, depExaminator, log);
+            Dependency dep = resolveNetBeansDependency(this.artifacts, artifact, deps, depExaminator, log);
             if (dep != null) {
                 ModuleWrapper wr = new ModuleWrapper();
                 wr.dependency = dep;
@@ -285,7 +285,7 @@ public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
             }
             mnf.checkFile();
             if (mnf.isNetBeansModule()) {
-                Artifact nbmArt = new DefaultArtifact(art.getGroupId(), art.getArtifactId(), art.getClassifier(), art.getExtension(), art.getVersion(), null, artifacts.getArtifactType(NbmFileArtifactHandler.NAME));
+                Artifact nbmArt = new DefaultArtifact(art.getGroupId(), art.getArtifactId(), art.getClassifier(), art.getExtension(), art.getVersion(), art.getProperties(), artifacts.getArtifactType(NbmFileArtifactHandler.NAME));
                 try {
                     ArtifactRequest request = new ArtifactRequest(nbmArt, project.getRemoteProjectRepositories(), "nbm");
                     org.eclipse.aether.resolution.ArtifactResult result = repositorySystem.resolveArtifact(mavenSession.getRepositorySession(), request);

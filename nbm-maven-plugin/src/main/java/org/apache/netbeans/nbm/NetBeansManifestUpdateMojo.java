@@ -421,7 +421,7 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
 
         DependencyNode treeroot = createDependencyTree(mavenSession.getCurrentProject(), includeRuntimeModuleLibraries);
         Map<Artifact, ExamineManifest> examinerCache = new HashMap<Artifact, ExamineManifest>();
-        List<Artifact> libArtifacts = getLibraryArtifacts(treeroot, module, RepositoryUtils.toArtifacts(mavenSession.getCurrentProject().getRuntimeArtifacts()),
+        List<Artifact> libArtifacts = getLibraryArtifacts(artifacts, treeroot, module, RepositoryUtils.toArtifacts(mavenSession.getCurrentProject().getRuntimeArtifacts()),
                 examinerCache, getLog(), useOSGiDependencies);
         List<ModuleWrapper> moduleArtifacts = getModuleDependencyArtifacts(treeroot, module, moduleDependencies,
                 mavenSession.getCurrentProject(), examinerCache,
@@ -570,7 +570,7 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
         return base;
     }
 
-    String conditionallyAddAttribute(Manifest.Section section, String key, String value) {
+    static String conditionallyAddAttribute(Manifest.Section section, String key, String value) {
         Manifest.Attribute attr = section.getAttribute(key);
         if (attr == null) {
             attr = new Manifest.Attribute();
@@ -579,7 +579,6 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
             try {
                 section.addConfiguredAttribute(attr);
             } catch (ManifestException ex) {
-                getLog().error("Cannot update manifest (key=" + key + ")");
                 ex.printStackTrace();
             }
         }
