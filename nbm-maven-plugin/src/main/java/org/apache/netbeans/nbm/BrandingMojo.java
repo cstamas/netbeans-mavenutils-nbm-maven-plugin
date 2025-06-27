@@ -100,8 +100,8 @@ public final class BrandingMojo extends AbstractNbmMojo {
     private String cluster;
 
     @Inject
-    public BrandingMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
-        super(repositorySystem, mavenSession, mavenProjectHelper, projectDependenciesResolver, artifacts);
+    public BrandingMojo(RepositorySystem repositorySystem, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
+        super(repositorySystem, mavenProjectHelper, projectDependenciesResolver, artifacts);
     }
 
     @Override

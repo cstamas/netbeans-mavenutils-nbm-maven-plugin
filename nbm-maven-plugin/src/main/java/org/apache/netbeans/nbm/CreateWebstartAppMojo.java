@@ -185,8 +185,8 @@ public final class CreateWebstartAppMojo extends AbstractNbmMojo {
     private String additionalArguments;
 
     @Inject
-    public CreateWebstartAppMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
-        super(repositorySystem, mavenSession, mavenProjectHelper, projectDependenciesResolver, artifacts);
+    public CreateWebstartAppMojo(RepositorySystem repositorySystem, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
+        super(repositorySystem, mavenProjectHelper, projectDependenciesResolver, artifacts);
     }
 
     /**

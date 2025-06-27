@@ -116,8 +116,8 @@ public final class CreateUpdateSiteMojo extends AbstractNbmMojo {
     private List<String> updateSiteIncludes;
 
     @Inject
-    public CreateUpdateSiteMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
-        super(repositorySystem, mavenSession, mavenProjectHelper, projectDependenciesResolver, artifacts);
+    public CreateUpdateSiteMojo(RepositorySystem repositorySystem, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
+        super(repositorySystem, mavenProjectHelper, projectDependenciesResolver, artifacts);
     }
 
     @Override

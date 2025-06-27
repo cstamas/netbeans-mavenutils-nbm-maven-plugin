@@ -174,8 +174,8 @@ public final class CreateClusterAppMojo extends AbstractNbmMojo {
     });
 
     @Inject
-    public CreateClusterAppMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
-        super(repositorySystem, mavenSession, mavenProjectHelper, projectDependenciesResolver, artifacts);
+    public CreateClusterAppMojo(RepositorySystem repositorySystem, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
+        super(repositorySystem, mavenProjectHelper, projectDependenciesResolver, artifacts);
     }
 
     @Override

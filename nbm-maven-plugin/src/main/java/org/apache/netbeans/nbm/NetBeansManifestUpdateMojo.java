@@ -279,8 +279,8 @@ public final class NetBeansManifestUpdateMojo extends AbstractNbmMojo {
     private String moduleType;
 
     @Inject
-    public NetBeansManifestUpdateMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
-        super(repositorySystem, mavenSession, mavenProjectHelper, projectDependenciesResolver, artifacts);
+    public NetBeansManifestUpdateMojo(RepositorySystem repositorySystem, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
+        super(repositorySystem, mavenProjectHelper, projectDependenciesResolver, artifacts);
     }
 
     /**

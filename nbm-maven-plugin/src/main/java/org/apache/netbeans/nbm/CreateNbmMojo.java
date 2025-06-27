@@ -185,8 +185,8 @@ public final class CreateNbmMojo extends CreateNetBeansFileStructure {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy/MM/dd");
 
     @Inject
-    public CreateNbmMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts, MavenResourcesFiltering mavenResourcesFiltering) {
-        super(repositorySystem, mavenSession, mavenProjectHelper, projectDependenciesResolver, artifacts, mavenResourcesFiltering);
+    public CreateNbmMojo(RepositorySystem repositorySystem, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts, MavenResourcesFiltering mavenResourcesFiltering) {
+        super(repositorySystem, mavenProjectHelper, projectDependenciesResolver, artifacts, mavenResourcesFiltering);
     }
 
     @Override

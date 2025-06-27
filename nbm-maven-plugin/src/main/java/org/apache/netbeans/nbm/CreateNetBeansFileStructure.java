@@ -229,8 +229,8 @@ public abstract class CreateNetBeansFileStructure extends AbstractNbmMojo {
     protected final MavenResourcesFiltering mavenResourcesFiltering;
 
     @Inject
-    public CreateNetBeansFileStructure(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts, MavenResourcesFiltering mavenResourcesFiltering) {
-        super(repositorySystem, mavenSession, mavenProjectHelper, projectDependenciesResolver, artifacts);
+    public CreateNetBeansFileStructure(RepositorySystem repositorySystem, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts, MavenResourcesFiltering mavenResourcesFiltering) {
+        super(repositorySystem, mavenProjectHelper, projectDependenciesResolver, artifacts);
         this.mavenResourcesFiltering = mavenResourcesFiltering;
     }
 

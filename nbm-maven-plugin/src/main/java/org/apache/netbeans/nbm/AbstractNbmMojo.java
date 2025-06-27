@@ -37,6 +37,7 @@ import org.apache.maven.archiver.MavenArchiver;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.DefaultDependencyResolutionRequest;
 import org.apache.maven.project.DependencyResolutionException;
 import org.apache.maven.project.DependencyResolutionResult;
@@ -60,16 +61,16 @@ import org.eclipse.aether.util.artifact.JavaScopes;
 import org.eclipse.aether.util.filter.ScopeDependencyFilter;
 
 public abstract class AbstractNbmMojo extends AbstractNetbeansMojo {
+    @Parameter(defaultValue = "${session}", required = true, readonly = true)
+    protected MavenSession mavenSession;
 
     protected final RepositorySystem repositorySystem;
-    protected final MavenSession mavenSession;
     protected final MavenProjectHelper mavenProjectHelper;
     protected final ProjectDependenciesResolver projectDependenciesResolver;
     protected final Artifacts artifacts;
 
-    public AbstractNbmMojo(RepositorySystem repositorySystem, MavenSession mavenSession, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
+    public AbstractNbmMojo(RepositorySystem repositorySystem, MavenProjectHelper mavenProjectHelper, ProjectDependenciesResolver projectDependenciesResolver, Artifacts artifacts) {
         this.repositorySystem = repositorySystem;
-        this.mavenSession = mavenSession;
         this.mavenProjectHelper = mavenProjectHelper;
         this.projectDependenciesResolver = projectDependenciesResolver;
         this.artifacts = artifacts;
